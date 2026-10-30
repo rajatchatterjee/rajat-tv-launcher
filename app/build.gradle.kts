@@ -11,8 +11,25 @@ android {
         applicationId = "com.mytvlauncher.app"
         minSdk = 26 // Android TV / Google TV devices (incl. OnePlus TV) run API 26+
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // CI passes its run number, so every Release build has a higher
+        // versionCode (Android won't install an "update" with a lower one)
+        // and Settings › About shows which build is on the TV.
+        val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = runNumber
+        versionName = "1.$runNumber"
+    }
+
+    signingConfigs {
+        // A fixed debug key committed to the repo. Without it every CI run
+        // generated a fresh random debug key, and Android refuses to install
+        // an APK over one signed with a different key ("App not installed").
+        // Personal sideload-only app, so a committed debug key is fine.
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
 
     buildFeatures {

@@ -13,22 +13,53 @@ Not a Play Store app — sideloaded, personal use only.
 
 ## Current state
 
+Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
+
 - **App name**: "Rajat's TV Launcher"
-- **Screens**: Home (greeting, clock, date, weather chip, quick-launch row,
-  left nav rail) and a separate full-screen App Drawer (full app grid +
-  bulk-uninstall selection mode).
-- **Themes**: 8 presets — Midnight, Sunset, Forest, Minimal Light, Crimson
-  (default), Obsidian, Neon, Pure White. Customizable further in Settings
-  (accent/background color, clock toggle, grid column count). Background is
-  a gradient that shifts slightly with time of day, blended with the active
-  theme.
-- **Bulk uninstall**: select multiple apps in the Drawer, confirm each via
-  the system's uninstall dialog in sequence (Android has no silent bulk
-  uninstall API).
-- **Weather widget**: Open-Meteo (free, no API key), using device location
-  (`ACCESS_COARSE_LOCATION`, requested at runtime) with Pune, Maharashtra as
-  a fallback if permission is denied or no fix is available.
-- **Storage**: SharedPreferences (not DataStore — see History, this mattered).
+- **Layout**: left sidebar (crown logo, Home / Apps / Favourites / Live TV /
+  Settings), top-right bar (date · time, weather, Wi-Fi/Ethernet/offline
+  icon, settings gear), full-screen wallpaper behind everything.
+- **Home**: "Good Evening, Rajat" greeting, Favourite Apps row, Recently
+  Opened row (stands in for the mockup's "Continue Watching" — see gotchas).
+- **Apps**: grid (4–8 columns) with category chips All / Video / Music /
+  Games / Tools / Other (`model/AppCategory.kt`: system category + known
+  package/keyword lists) and a "+ Add App" tile that opens Play Store.
+  "Select" mode = bulk delete: tick apps, Delete (n), confirm each in the
+  system dialog. System apps are dimmed/unselectable.
+- **App options menu**: hold OK (or press Menu) on any app → icon, version,
+  APK size, install date; Open, Add/Remove Favourites, Move, Add/Remove Live
+  TV, Uninstall (user apps only), App Info.
+- **Favourites**: user-ordered; "Edit Order": OK picks up, arrows move, OK
+  drops. Seeded on first run with YouTube/Netflix/Prime/Hotstar/Spotify/
+  JioCinema if installed.
+- **Live TV**: auto-detected channel/news/sports apps (JioTV, Xstream, Tata
+  Play, ZEE5, SonyLIV, news apps…) + manual add/remove; chips Recent / News /
+  Sports / Entertainment.
+- **Settings**: Theme & Appearance, App Management, Layout & Grid, Remote &
+  Navigation, Clock & Date Format, About (shows build number).
+- **Themes**: 5 scenic wallpapers drawn in code (`ui/components/Wallpaper.kt`,
+  no image files) — Cinematic Sunset (default), Aurora, Minimal Dark, Ocean
+  Blue, Forest — plus the 8 older colour themes. Accent colour (6 choices),
+  background style Blur / Dim / Solid (real blur only on Android 12+; older
+  TVs get a heavier scrim), show-clock toggle.
+- **Remote handling**: `ui/components/TvModifiers.kt` `tvClickable` — OK
+  click, OK-hold long-press, Menu key. Back never exits the launcher; the
+  remote's Home button returns to the Home screen.
+- **Weather**: Open-Meteo (no API key), coarse location with Pune fallback,
+  refreshed every 30 min.
+- **Storage**: SharedPreferences only (`data/SettingsRepository.kt`,
+  usage/recents in `data/AppRepository.kt`). Not DataStore — see History.
+
+## Code map
+
+- `MainActivity.kt` — creates repositories, refreshes app list on resume.
+- `ui/LauncherRoot.kt` — wallpaper + sidebar + top bar + screen switching,
+  Back handling, app-options dialog wiring.
+- `ui/screens/` — Home, Apps, Favourites, LiveTv, Settings, AppOptionsDialog.
+- `ui/components/` — Controls (buttons/chips/rows), AppTiles, Chrome
+  (sidebar/top bar/weather), Wallpaper, TvModifiers.
+- `data/` — AppRepository, SettingsRepository, BulkUninstallController,
+  WeatherRepository. `model/` — LauncherApp, LauncherTheme, AppCategory.
 
 ## Build & deploy pipeline
 
@@ -44,6 +75,15 @@ Not a Play Store app — sideloaded, personal use only.
   Store, then paste in the direct Release download URL from this repo's
   Releases page.
 - Repo: `github.com/rajatchatterjee/rajat-tv-launcher`
+- **Signing**: debug builds are signed with the committed
+  `keystore/debug.keystore` (password/alias: `android` / `androiddebugkey`),
+  so each new Release installs *over* the previous one and keeps settings.
+- **Versioning**: `versionCode` = CI run number, `versionName` = `1.<run>`;
+  matches the Release tag `build-<run>` and is shown in Settings › About.
+- **No local Android build in Claude sessions**: the sandbox can't reach
+  Google Maven / Gradle distribution servers, so GitHub Actions is the
+  compiler. Push, then watch the run via
+  `gh api repos/rajatchatterjee/rajat-tv-launcher/actions/runs`.
 
 ## History
 
@@ -78,6 +118,21 @@ Not a Play Store app — sideloaded, personal use only.
   device location, Pune fallback), a soft time-of-day background gradient,
   a glow effect behind app icons, and staggered entrance animations for
   tiles.
+- **2026-10-30**: Built out the full mockup sheet (8 screens). New:
+  labelled sidebar with Favourites + Live TV, top bar with network icon,
+  scenic code-drawn wallpapers (Cinematic Sunset default) with Blur/Dim/Solid
+  and accent picker, Apps category chips + "+ Add App", Select & bulk delete
+  as its own mode, long-press app options menu, Favourites with D-pad
+  reordering, Live TV section, Settings split into sub-pages (Layout & Grid,
+  Remote & Navigation, Clock & Date Format, About). App icons/banners are
+  now converted to bitmaps once on a background thread; the app list
+  refreshes in place instead of re-running setContent on every resume.
+  Replaced ThemeRepository with SettingsRepository (old pref keys kept) and
+  removed SettingsActivity (settings now live inside MainActivity).
+  Build: committed a fixed debug signing key and run-number versionCode —
+  previously every CI build had a different random debug key, so new builds
+  could not install over old ones. **One-time**: uninstall the old build
+  before installing the first build signed with the new key.
 
 ## Known gotchas for future work
 
@@ -93,3 +148,12 @@ Not a Play Store app — sideloaded, personal use only.
 - Icon name collisions: anything named `List` clashes with Kotlin's
   `List<T>` — avoid importing `Icons.Filled.List` unaliased in a file that
   also uses generic `List<T>` types (this file does, heavily).
+- **"Continue Watching" isn't possible for a third-party launcher**: reading
+  other apps' Watch Next programs (TvContract.WatchNextPrograms) needs a
+  system/privileged permission. The Home row shows *Recently Opened* apps
+  (tracked by this launcher's own launches) instead.
+- Lazy rows/grids may not have composed their items when a LaunchedEffect
+  runs — use `requestFocusWhenReady()` (retries) rather than a bare
+  `requestFocus()`, which throws if the node isn't attached.
+- `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
+  (the right-hand widget) comes before it and is passed by name.

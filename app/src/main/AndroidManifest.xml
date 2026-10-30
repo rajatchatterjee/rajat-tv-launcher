@@ -19,6 +19,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- Normal (install-time) permission: lets the top bar show whether the
+         TV is on Wi-Fi, Ethernet, or offline. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <!-- Modern (non-sensitive) replacement for QUERY_ALL_PACKAGES: tells
          Android exactly which other apps we need to see — anything with
          a TV or phone/tablet launcher entry point — without requesting
@@ -61,12 +65,6 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Settings / theme customization screen -->
-        <activity
-            android:name=".ui.screens.SettingsActivity"
-            android:exported="false"
-            android:theme="@style/Theme.MyTVLauncher" />
 
     </application>
 </manifest>
