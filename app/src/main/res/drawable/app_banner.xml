@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder TV banner (required size: 320x180dp). Replace with your
+     own artwork later — this just keeps the manifest valid so the
+     project builds out of the box. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path
+        android:pathData="M0,0h320v180h-320z"
+        android:fillColor="#0B0E14" />
+    <path
+        android:pathData="M40,90 L80,60 L80,120 Z"
+        android:fillColor="#5B8CFF" />
+</vector>
