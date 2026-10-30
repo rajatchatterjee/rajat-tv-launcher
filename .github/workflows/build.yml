@@ -17,8 +17,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK licenses
+        # ubuntu-latest runners already ship with the Android SDK
+        # (ANDROID_HOME/ANDROID_SDK_ROOT preinstalled). We only need to
+        # accept the licenses before Gradle's own SDK components can
+        # install. We deliberately don't use android-actions/setup-android
+        # here — it tries to install the long-removed legacy 'tools'
+        # package and fails.
+        run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
