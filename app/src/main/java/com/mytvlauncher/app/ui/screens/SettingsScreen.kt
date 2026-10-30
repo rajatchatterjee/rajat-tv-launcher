@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
@@ -53,8 +55,8 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
             Text(text = "Presets", color = theme.textSecondary, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ThemePresets.all.forEach { preset ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                items(ThemePresets.all) { preset ->
                     PresetSwatch(
                         preset = preset,
                         selected = preset.id == theme.id,
@@ -118,16 +120,24 @@ private fun PresetSwatch(preset: LauncherTheme, selected: Boolean, onClick: () -
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .size(68.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(preset.background)
                 .border(
                     width = if (selected) 3.dp else 1.dp,
-                    color = if (selected) preset.accent else Color.Gray,
-                    shape = RoundedCornerShape(12.dp)
+                    color = if (selected) preset.accent else Color.Gray.copy(alpha = 0.4f),
+                    shape = RoundedCornerShape(14.dp)
                 )
-                .clickable { onClick() }
-        )
+                .clickable { onClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(preset.accent)
+            )
+        }
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = preset.name, color = Color.Gray, fontSize = 12.sp)
     }

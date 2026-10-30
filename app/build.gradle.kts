@@ -46,6 +46,8 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview:1.6.8")
     implementation("androidx.compose.material:material:1.6.8")
     implementation("androidx.compose.foundation:foundation:1.6.8")
+    implementation("androidx.compose.animation:animation:1.6.8")
+    implementation("androidx.compose.material:material-icons-extended:1.6.8")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.leanback:leanback:1.0.0")
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.8")

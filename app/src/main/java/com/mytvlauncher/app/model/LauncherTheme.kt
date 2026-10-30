@@ -73,7 +73,37 @@ object ThemePresets {
         textSecondary = Color(0xFFB08C8F)
     )
 
-    val all = listOf(Midnight, Sunset, Forest, Minimal, Crimson)
+    val Obsidian = LauncherTheme(
+        id = "obsidian",
+        name = "Obsidian",
+        background = Color(0xFF000000),
+        surface = Color(0xFF0C0C0C),
+        accent = Color(0xFF00D4FF),
+        textPrimary = Color(0xFFF2F2F2),
+        textSecondary = Color(0xFF7A7A7A)
+    )
+
+    val Neon = LauncherTheme(
+        id = "neon",
+        name = "Neon",
+        background = Color(0xFF07060C),
+        surface = Color(0xFF140F1F),
+        accent = Color(0xFFFF2BD6),
+        textPrimary = Color(0xFFF4EEFF),
+        textSecondary = Color(0xFFB79CE0)
+    )
+
+    val PureWhite = LauncherTheme(
+        id = "pure_white",
+        name = "Pure White",
+        background = Color(0xFFFFFFFF),
+        surface = Color(0xFFF6F6F7),
+        accent = Color(0xFF111111),
+        textPrimary = Color(0xFF111111),
+        textSecondary = Color(0xFF7D7D7D)
+    )
+
+    val all = listOf(Midnight, Sunset, Forest, Minimal, Crimson, Obsidian, Neon, PureWhite)
 
     fun byId(id: String): LauncherTheme = all.find { it.id == id } ?: Crimson
 }
