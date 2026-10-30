@@ -23,23 +23,13 @@ class MainActivity : ComponentActivity() {
         // registration requires it.
         bulkUninstallController = BulkUninstallController(this, appRepository)
 
-        renderHome()
+        setContent {
+            HomeScreen(appRepository, themeRepository, bulkUninstallController)
+        }
     }
 
     override fun onResume() {
         super.onResume()
-        // Refresh the app list each time we return to the home screen —
-        // including after a bulk-uninstall run, so removed apps disappear.
-        renderHome()
-    }
-
-    private fun renderHome() {
-        setContent {
-            HomeScreen(
-                appRepository = appRepository,
-                themeRepository = themeRepository,
-                bulkUninstallController = bulkUninstallController
-            )
-        }
+        if (::themeRepository.isInitialized) themeRepository.refresh()
     }
 }

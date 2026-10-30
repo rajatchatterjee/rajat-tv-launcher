@@ -14,7 +14,7 @@ app/src/main/java/com/mytvlauncher/app/
   model/LauncherApp.kt         – one installed app (icon, label, package)
   model/LauncherTheme.kt       – theme data model + the 4 presets
   data/AppRepository.kt        – finds installed/sideloaded apps, launches them
-  data/ThemeRepository.kt      – persists your theme choices (DataStore)
+  data/ThemeRepository.kt      – persists theme and personalisation (SharedPreferences)
   ui/screens/HomeScreen.kt     – the home screen itself (clock, app grid)
   ui/screens/SettingsScreen.kt – the theme designer
 ```
@@ -32,8 +32,15 @@ picker, whatever you want.
 4. Build the APK: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
    The output lands in `app/build/outputs/apk/debug/app-debug.apk`.
 
-No Android Studio on this machine, so I can't compile it from here —
-but the project is complete and will build as-is once opened there.
+For a command-line build, use JDK 17, Gradle 8.7, Android SDK platform 34,
+and Build Tools 34.0.0. Set `ANDROID_HOME` to the SDK directory, then run:
+
+```sh
+gradle assembleDebug testDebugUnitTest lintDebug
+```
+
+The debug APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+CI runs these checks for pull requests and publishes an APK release on `main`.
 
 ## 2. Install it on your OnePlus TV over WiFi (ADB)
 
@@ -66,16 +73,44 @@ reversible.
 
 ## 4. Design your theme
 
-Open the app → tap the gear icon (top right) → pick a preset, then
-override the accent color, background color, clock visibility, and
-number of grid columns. Changes apply immediately.
+Open **Personalise** to save a display name for the time-based greeting, choose
+a preset, or adjust the accent, background, clock visibility, and grid density.
+Choose Solid, Aurora, or Dusk wallpaper, or import an image using the system
+picker (up to 20 MB). Imported images are copied to private app storage and
+remain available after restarting. TVs without a document picker can use the
+built-in wallpapers. Theme and wallpaper changes apply immediately; use
+**Save name** to apply an edited name.
+
+Use the D-pad and OK/Enter to browse and open apps. Focused controls have an
+accent border. Settings scrolls automatically as controls receive focus.
+
+## 5. Manage apps safely
+
+Open **Manage Apps**, select user-installed apps, and choose **Uninstall** in
+the fixed bar above the app grid. The Menu key jumps to that action from any
+row when apps are selected. Review the names, then choose **Continue**.
+Android asks for confirmation for each app; cancelling a removal stops the
+remaining queue. **Stop queue**, Back, or returning home also stops pending
+requests (an already-open Android confirmation must still be answered).
+System apps, updated system apps, and this launcher cannot be selected.
+The app list refreshes after returning from Android. Recreating the activity
+stops the batch rather than replaying destructive requests.
+
+### Device smoke check
+
+On an Android TV, verify D-pad focus and scrolling, launch a TV app and a
+sideloaded app, save a name/theme/wallpaper and restart, then select two
+**disposable user apps** in Manage Apps. Confirm the first removal and cancel
+the second. Verify the first disappears, the second remains, and protected
+apps never become selectable. Unit tests cover queue sequencing, cancellation,
+protection checks, and preference persistence; TV-specific installer behaviour
+still requires a device check.
 
 ## Notes
 
-- `QUERY_ALL_PACKAGES` permission is required for a launcher to see
-  every app on the device, including ones you sideloaded — this is
-  the correct, standard permission for this use case, not something
-  that touches system files.
+- Package visibility uses scoped `<queries>` for TV and phone launcher entry
+  points. `REQUEST_DELETE_PACKAGES` allows asking Android to uninstall apps;
+  it does not grant silent deletion.
 - This installs as a normal app. No root, no bootloader unlock, no
   firmware changes — uninstalling it or switching the default launcher
   back fully reverts your TV to how it was before.

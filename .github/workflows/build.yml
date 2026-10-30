@@ -3,6 +3,8 @@ name: Build APK
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch: {}
 
 permissions:
@@ -35,7 +37,7 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build debug APK
-        run: gradle assembleDebug
+        run: gradle assembleDebug testDebugUnitTest lintDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -44,6 +46,7 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
 
       - name: Publish a GitHub Release with the APK
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         # Artifacts from "Upload APK" above require a GitHub login to
         # download, and the resulting link is Azure blob storage, which
         # some networks/sandboxes block. A Release asset is a plain,

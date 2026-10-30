@@ -47,11 +47,13 @@ class ThemeRepository(private val context: Context) {
                 ?: base.accent,
             backgroundImageUrl = prefs.getString(Keys.CUSTOM_WALLPAPER_URI, null) ?: base.backgroundImageUrl,
             showClock = prefs.getBoolean(Keys.SHOW_CLOCK, base.showClock),
-            gridColumns = prefs.getInt(Keys.GRID_COLUMNS, base.gridColumns)
+            gridColumns = prefs.getInt(Keys.GRID_COLUMNS, base.gridColumns).coerceIn(4, 8),
+            displayName = prefs.getString("display_name", "").orEmpty(),
+            wallpaperStyle = prefs.getString("wallpaper_style", "none").orEmpty()
         )
     }
 
-    private fun refresh() {
+    fun refresh() {
         _currentTheme.value = readTheme()
     }
 
@@ -76,6 +78,16 @@ class ThemeRepository(private val context: Context) {
         refresh()
     }
 
+    fun setDisplayName(name: String) {
+        prefs.edit().putString("display_name", name.trim().take(40)).apply()
+        refresh()
+    }
+
+    fun setWallpaperStyle(style: String) {
+        prefs.edit().putString("wallpaper_style", style).remove(Keys.CUSTOM_WALLPAPER_URI).apply()
+        refresh()
+    }
+
     fun setWallpaper(uriOrPath: String) {
         prefs.edit().putString(Keys.CUSTOM_WALLPAPER_URI, uriOrPath).apply()
         refresh()
@@ -92,7 +104,7 @@ class ThemeRepository(private val context: Context) {
     }
 
     fun setGridColumns(columns: Int) {
-        prefs.edit().putInt(Keys.GRID_COLUMNS, columns).apply()
+        prefs.edit().putInt(Keys.GRID_COLUMNS, columns.coerceIn(4, 8)).apply()
         refresh()
     }
 }

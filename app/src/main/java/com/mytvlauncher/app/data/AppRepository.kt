@@ -3,7 +3,6 @@ package com.mytvlauncher.app.data
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.graphics.drawable.Drawable
 import com.mytvlauncher.app.model.LauncherApp
 
 /**
@@ -71,18 +70,27 @@ class AppRepository(private val context: Context) {
      * each dialog is dismissed (see BulkUninstallController).
      */
     fun uninstallIntent(app: LauncherApp): Intent =
-        Intent(Intent.ACTION_DELETE).apply {
+        Intent(Intent.ACTION_UNINSTALL_PACKAGE).apply {
             data = android.net.Uri.parse("package:${app.packageName}")
+            putExtra(Intent.EXTRA_RETURN_RESULT, true)
         }
 
-    /**
-     * Whether this app is safe to offer for uninstall at all. System
-     * apps (things like the TV's own Settings, Play Store, the stock
-     * launcher) report isSideloaded = false and are excluded from
-     * selection, so a bulk action can't accidentally target something
-     * that could break the device.
-     */
-    fun isUninstallable(app: LauncherApp): Boolean = app.isSideloaded
+    /** Check package flags, not the discovery label: phone-launcher system apps
+     * can also be marked sideloaded. Recheck before every removal request. */
+    fun isUninstallable(app: LauncherApp): Boolean = try {
+        val info = context.packageManager.getApplicationInfo(app.packageName, 0)
+        app.packageName != context.packageName &&
+            (info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) == 0
+    } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+        false
+    }
+
+    fun isInstalled(packageName: String): Boolean = try {
+        context.packageManager.getApplicationInfo(packageName, 0)
+        true
+    } catch (_: android.content.pm.PackageManager.NameNotFoundException) {
+        false
+    }
 
     private fun ApplicationInfo.isSideloaded(): Boolean =
         (flags and ApplicationInfo.FLAG_SYSTEM) == 0

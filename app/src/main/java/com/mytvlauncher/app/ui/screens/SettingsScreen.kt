@@ -1,13 +1,23 @@
 package com.mytvlauncher.app.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.darkColors
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.Slider
 import androidx.compose.material.Switch
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -35,13 +45,61 @@ import com.mytvlauncher.app.model.ThemePresets
 fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
     val theme by themeRepository.currentTheme.collectAsState()
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var displayName by remember { mutableStateOf(theme.displayName) }
+    var wallpaperMessage by remember { mutableStateOf("") }
+    val wallpaperPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            wallpaperMessage = "Loading wallpaper…"
+            val result = withContext(Dispatchers.IO) {
+                // Own a bounded local copy; no persistent external URI grant is needed.
+                val temporary = java.io.File(context.filesDir, "wallpaper-pending")
+                try {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        temporary.outputStream().use { output ->
+                            val buffer = ByteArray(8192)
+                            var total = 0
+                            while (true) {
+                                val count = input.read(buffer)
+                                if (count < 0) break
+                                total += count
+                                require(total <= 20 * 1024 * 1024) { "Choose an image smaller than 20 MB" }
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                    } ?: error("Unable to open image")
+                    val options = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    android.graphics.BitmapFactory.decodeFile(temporary.path, options)
+                    require(options.outWidth > 0 && options.outHeight > 0) { "Choose a supported image" }
+                    val destination = java.io.File.createTempFile("wallpaper-", ".img", context.filesDir)
+                    check(temporary.renameTo(destination)) { "Unable to save wallpaper" }
+                    Result.success(destination.path)
+                } catch (e: Exception) {
+                    Result.failure<String>(e)
+                } finally { temporary.delete() }
+            }
+            result.fold(onSuccess = { path ->
+                val previous = theme.backgroundImageUrl
+                themeRepository.setWallpaper(path)
+                previous?.let { old ->
+                    val file = java.io.File(old)
+                    if (file.parentFile == context.filesDir && file.name.startsWith("wallpaper-")) file.delete()
+                }
+                wallpaperMessage = "Wallpaper saved"
+            }, onFailure = { wallpaperMessage = it.message ?: "Unable to load wallpaper" })
+        }
+    }
+
+    MaterialTheme(colors = darkColors(primary = theme.accent, surface = theme.surface,
+        background = theme.background, onSurface = theme.textPrimary)) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(theme.background)
             .padding(32.dp)
     ) {
-        Column {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
             Text(
                 text = "Customize your home screen",
                 color = theme.textPrimary,
@@ -50,6 +108,33 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+            Text("Display name", color = theme.textSecondary)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(value = displayName, onValueChange = { displayName = it.take(40) },
+                    singleLine = true, label = { Text("Name (optional)") },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(textColor = theme.textPrimary,
+                        unfocusedBorderColor = theme.textSecondary, unfocusedLabelColor = theme.textSecondary))
+                TvAction("Save name", theme) { themeRepository.setDisplayName(displayName) }
+            }
+            Text("Leave blank for a simple greeting.", color = theme.textSecondary)
+            Spacer(Modifier.height(24.dp))
+            Text("Wallpaper", color = theme.textSecondary)
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf("none" to "Solid", "aurora" to "Aurora", "dusk" to "Dusk").forEach { (id, label) ->
+                    TvAction(label + if (theme.backgroundImageUrl == null && theme.wallpaperStyle == id) " ✓" else "", theme) {
+                        themeRepository.setWallpaperStyle(id)
+                    }
+                }
+                TvAction("Choose image", theme) {
+                    try { wallpaperPicker.launch(arrayOf("image/*")) }
+                    catch (_: android.content.ActivityNotFoundException) {
+                        wallpaperMessage = "No image picker on this TV. Choose a built-in wallpaper."
+                    }
+                }
+            }
+            if (wallpaperMessage.isNotEmpty()) Text(wallpaperMessage, color = theme.textSecondary)
+            Spacer(Modifier.height(24.dp))
             Text(text = "Presets", color = theme.textSecondary, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -86,30 +171,31 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(32.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.tvAction(theme) { themeRepository.setShowClock(!theme.showClock) }.padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
                 Text(text = "Show clock", color = theme.textSecondary, fontSize = 16.sp)
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
                     checked = theme.showClock,
-                    onCheckedChange = { themeRepository.setShowClock(it) }
+                    onCheckedChange = null
                 )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
             Text(text = "Grid columns: ${theme.gridColumns}", color = theme.textSecondary, fontSize = 16.sp)
-            Slider(
-                value = theme.gridColumns.toFloat(),
-                onValueChange = { themeRepository.setGridColumns(it.toInt()) },
-                valueRange = 4f..8f,
-                steps = 3,
-                modifier = Modifier.width(320.dp)
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TvAction("Fewer columns", theme, enabled = theme.gridColumns > 4) {
+                    themeRepository.setGridColumns(theme.gridColumns - 1)
+                }
+                TvAction("More columns", theme, enabled = theme.gridColumns < 8) {
+                    themeRepository.setGridColumns(theme.gridColumns + 1)
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
-            Button(onClick = onDone) {
-                Text("Done")
-            }
+            TvAction("Done", theme, onClick = onDone)
         }
+    }
     }
 }
 
@@ -126,7 +212,8 @@ private fun PresetSwatch(preset: LauncherTheme, selected: Boolean, onClick: () -
                     color = if (selected) preset.accent else Color.Gray,
                     shape = RoundedCornerShape(12.dp)
                 )
-                .clickable { onClick() }
+                .semantics { contentDescription = preset.name }
+                .tvAction(preset, selected = selected, onClick = onClick)
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(text = preset.name, color = Color.Gray, fontSize = 12.sp)
@@ -135,6 +222,7 @@ private fun PresetSwatch(preset: LauncherTheme, selected: Boolean, onClick: () -
 
 @Composable
 private fun ColorRow(colors: List<Color>, onPick: (Color) -> Unit) {
+    val theme = com.mytvlauncher.app.model.ThemePresets.Midnight
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         colors.forEach { color ->
             Box(
@@ -143,7 +231,8 @@ private fun ColorRow(colors: List<Color>, onPick: (Color) -> Unit) {
                     .clip(CircleShape)
                     .background(color)
                     .border(1.dp, Color.Gray, CircleShape)
-                    .clickable { onPick(color) }
+                    .semantics { contentDescription = "Color ${color.toHex()}" }
+                    .tvAction(theme) { onPick(color) }
             )
         }
     }

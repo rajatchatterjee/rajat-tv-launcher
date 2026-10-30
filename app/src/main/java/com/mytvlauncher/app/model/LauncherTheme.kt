@@ -18,7 +18,9 @@ data class LauncherTheme(
     val textSecondary: Color,
     val cardCornerRadiusDp: Int = 16,
     val showClock: Boolean = true,
-    val gridColumns: Int = 6
+    val gridColumns: Int = 6,
+    val displayName: String = "",
+    val wallpaperStyle: String = "none"
 )
 
 object ThemePresets {
