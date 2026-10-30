@@ -1,29 +1,23 @@
 # Rajat's TV Launcher
 
 A custom Android TV home screen launcher, built for OnePlus TV (Android TV OS).
-Shows every installed app — including sideloaded ones — in a themed grid,
-with a Settings screen to design your own look: background color, accent
-color, clock on/off, and grid density. Five presets are included (Midnight,
-Sunset, Forest, Minimal Light, Crimson — the default) as starting points.
-The home screen also greets you by name and shows the date next to the clock.
+Sidebar navigation (Home, Apps, Favourites, Live TV, Settings), scenic
+wallpapers drawn in code, app categories, a long-press app options menu,
+reorderable favourites, a Live TV section, and bulk uninstall.
 
 ## What's in here
 
 ```
 app/src/main/java/com/mytvlauncher/app/
-  MainActivity.kt                  – entry point, sets content to HomeScreen
-  model/LauncherApp.kt             – one installed app (icon, label, package)
-  model/LauncherTheme.kt           – theme data model + the 5 presets
-  data/AppRepository.kt            – finds installed/sideloaded apps, launches/uninstalls them
-  data/ThemeRepository.kt          – persists your theme choices (SharedPreferences)
-  data/BulkUninstallController.kt  – walks the uninstall confirmation dialog across a selection
-  ui/screens/HomeScreen.kt         – the home screen itself (clock, greeting, app grid, bulk select)
-  ui/screens/SettingsScreen.kt     – the theme designer
+  MainActivity.kt                   – entry point
+  ui/LauncherRoot.kt                – wallpaper, sidebar, top bar, screen switching
+  ui/screens/                       – Home, Apps, Favourites, Live TV, Settings, app options menu
+  ui/components/                    – buttons/chips/rows, app cards, sidebar/top bar, wallpapers, remote handling
+  data/AppRepository.kt             – finds/launches apps, remembers recently opened
+  data/SettingsRepository.kt        – all user settings (SharedPreferences)
+  data/BulkUninstallController.kt   – walks the uninstall confirmation dialog across a selection
+  model/                            – app, theme and category models
 ```
-
-To change the design further, `LauncherTheme.kt` and `SettingsScreen.kt`
-are the two files to edit — add more presets, more colors, a wallpaper
-picker, whatever you want.
 
 ## 1. Build it
 
@@ -45,6 +39,8 @@ wireless/network ADB debugging (common on some Android TV builds) and the
 USB port doesn't support device mode to a computer:
 
 1. On the TV, install **Downloader** (by AFTVnews) from the Play Store.
+   (Builds are signed with a fixed key, so each new build installs over the
+   previous one and keeps your settings.)
 2. Grab the direct download link for `app-debug.apk` from this repo's
    **Releases** page.
 3. Open Downloader on the TV, paste in that URL, let it fetch and install.
@@ -67,20 +63,17 @@ To revert any time: same menu, select the original OnePlus launcher
 instead — nothing about the TV itself is modified, so this is fully
 reversible.
 
-## 4. Design your theme
+## 4. Using it
 
-Open the app → tap the gear icon (top right) → pick a preset, then
-override the accent color, background color, clock visibility, and
-number of grid columns. Changes apply immediately.
-
-## 5. Bulk uninstall apps
-
-Tap the trash icon (top right) to enter selection mode, tap apps to check
-them off (only non-system apps are selectable), then tap **Uninstall**.
-Android requires confirming each uninstall individually — there's no
-silent bulk-delete API for a regular app — so you'll see the system's
-"Uninstall this app?" dialog once per selected app; just keep confirming
-until the queue finishes.
+- **OK** opens an app. **Hold OK** (or press **Menu**) for app options:
+  add/remove favourite, move, add to Live TV, uninstall, app info.
+- **Favourites → Edit Order**: OK picks an app up, arrows move it, OK drops it.
+- **Settings → Theme & Appearance**: wallpaper, accent colour, Blur/Dim/Solid
+  background, clock on/off. Layout & Grid, Clock & Date Format and About
+  (shows the installed build number) are there too.
+- **Bulk uninstall**: Apps → **Select** (or Settings → App Management), tick
+  apps, **Delete**. Android requires confirming each uninstall individually,
+  so you'll see the system dialog once per app. System apps can't be selected.
 
 ## Notes
 
