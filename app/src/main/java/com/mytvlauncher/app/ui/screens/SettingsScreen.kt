@@ -23,18 +23,17 @@ import androidx.compose.ui.unit.sp
 import com.mytvlauncher.app.data.ThemeRepository
 import com.mytvlauncher.app.model.LauncherTheme
 import com.mytvlauncher.app.model.ThemePresets
-import kotlinx.coroutines.launch
 
 /**
  * Where "design your own" actually happens: pick a starting preset,
  * then override background/accent color and layout density. Everything
- * writes straight to DataStore via ThemeRepository, so HomeScreen
- * picks up changes immediately (it collects the same Flow).
+ * writes straight to SharedPreferences via ThemeRepository, so
+ * HomeScreen picks up changes immediately (it collects the same
+ * StateFlow).
  */
 @Composable
 fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
-    val scope = rememberCoroutineScope()
-    val theme by themeRepository.currentTheme.collectAsState(initial = ThemePresets.Midnight)
+    val theme by themeRepository.currentTheme.collectAsState()
 
     Box(
         modifier = Modifier
@@ -59,7 +58,7 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
                     PresetSwatch(
                         preset = preset,
                         selected = preset.id == theme.id,
-                        onClick = { scope.launch { themeRepository.selectPreset(preset.id) } }
+                        onClick = { themeRepository.selectPreset(preset.id) }
                     )
                 }
             }
@@ -72,9 +71,7 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
                     Color(0xFF5B8CFF), Color(0xFFFF7A59), Color(0xFF4CAF7D),
                     Color(0xFFE44C9A), Color(0xFFF2C14E), Color(0xFFFFFFFF)
                 ),
-                onPick = { color ->
-                    scope.launch { themeRepository.setCustomAccent(color.toHex()) }
-                }
+                onPick = { color -> themeRepository.setCustomAccent(color.toHex()) }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -85,9 +82,7 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
                     Color(0xFF0B0E14), Color(0xFF1A0F1A), Color(0xFF0E1A14),
                     Color(0xFFF4F4F6), Color(0xFF101010), Color(0xFF14202B)
                 ),
-                onPick = { color ->
-                    scope.launch { themeRepository.setCustomBackground(color.toHex()) }
-                }
+                onPick = { color -> themeRepository.setCustomBackground(color.toHex()) }
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -96,7 +91,7 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
                 Spacer(modifier = Modifier.width(16.dp))
                 Switch(
                     checked = theme.showClock,
-                    onCheckedChange = { scope.launch { themeRepository.setShowClock(it) } }
+                    onCheckedChange = { themeRepository.setShowClock(it) }
                 )
             }
 
@@ -104,7 +99,7 @@ fun SettingsScreen(themeRepository: ThemeRepository, onDone: () -> Unit) {
             Text(text = "Grid columns: ${theme.gridColumns}", color = theme.textSecondary, fontSize = 16.sp)
             Slider(
                 value = theme.gridColumns.toFloat(),
-                onValueChange = { scope.launch { themeRepository.setGridColumns(it.toInt()) } },
+                onValueChange = { themeRepository.setGridColumns(it.toInt()) },
                 valueRange = 4f..8f,
                 steps = 3,
                 modifier = Modifier.width(320.dp)

@@ -38,8 +38,6 @@ import com.mytvlauncher.app.data.BulkUninstallController
 import com.mytvlauncher.app.data.ThemeRepository
 import com.mytvlauncher.app.model.LauncherApp
 import com.mytvlauncher.app.model.LauncherTheme
-import com.mytvlauncher.app.model.ThemePresets
-import kotlinx.coroutines.flow.Flow
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -58,7 +56,7 @@ fun HomeScreen(
     bulkUninstallController: BulkUninstallController
 ) {
     val context = LocalContext.current
-    val theme by themeRepository.currentTheme.collectAsThemeState()
+    val theme by themeRepository.currentTheme.collectAsState()
     val apps = remember { appRepository.loadLauncherApps() }
 
     var selectionMode by remember { mutableStateOf(false) }
@@ -305,8 +303,3 @@ private fun AppIcon(drawable: Drawable, modifier: Modifier = Modifier) {
     val bitmap = remember(drawable) { drawable.toBitmap().asImageBitmap() }
     Image(bitmap = bitmap, contentDescription = null, modifier = modifier)
 }
-
-/** Small helper so HomeScreen can collect a cold Flow<LauncherTheme> as state with a sane default. */
-@Composable
-private fun Flow<LauncherTheme>.collectAsThemeState() =
-    this.collectAsState(initial = ThemePresets.Midnight)

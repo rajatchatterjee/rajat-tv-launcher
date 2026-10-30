@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 /**
  * A single theme definition. Add new presets to ThemePresets below,
  * or let the user build a fully custom one in Settings (colors are
- * stored as hex strings so they persist easily via DataStore).
+ * stored as hex strings so they persist easily via SharedPreferences).
  */
 data class LauncherTheme(
     val id: String,
