@@ -124,6 +124,13 @@ fun HomeScreen(
                         exitSelectionMode()
                     }
                 )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Rajat's TV Launcher",
+                    color = theme.textSecondary,
+                    fontSize = 11.sp
+                )
             }
         }
     }
@@ -196,16 +203,48 @@ private fun Clock(theme: LauncherTheme) {
         }
     }
 
-    Text(
-        text = time,
-        color = theme.textPrimary,
-        fontSize = 28.sp,
-        fontWeight = FontWeight.Medium
-    )
+    Column {
+        Text(
+            text = greeting(),
+            color = theme.accent,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                text = time,
+                color = theme.textPrimary,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = currentDateString(),
+                color = theme.textSecondary,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+    }
+}
+
+/** A time-of-day greeting personalized for the TV's owner. */
+private fun greeting(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    val timeOfDay = when (hour) {
+        in 5..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        in 17..20 -> "Good evening"
+        else -> "Good night"
+    }
+    return "$timeOfDay, Rajat"
 }
 
 private fun currentTimeString(): String =
     SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+
+private fun currentDateString(): String =
+    SimpleDateFormat("EEE, d MMM", Locale.getDefault()).format(Date())
 
 @Composable
 private fun AppTile(

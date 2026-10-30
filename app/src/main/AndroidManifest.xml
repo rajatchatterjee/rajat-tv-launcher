@@ -8,6 +8,11 @@
         android:name="android.hardware.touchscreen"
         android:required="false" />
 
+    <!-- Required for apps targeting API 26+ to trigger the system
+         uninstall-confirmation flow (what bulk uninstall relies on).
+         Without this, Intent.ACTION_DELETE silently does nothing. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
     <!-- Modern (non-sensitive) replacement for QUERY_ALL_PACKAGES: tells
          Android exactly which other apps we need to see — anything with
          a TV or phone/tablet launcher entry point — without requesting

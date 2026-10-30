@@ -56,6 +56,13 @@ class BulkUninstallController(
         }
         val next = queue.removeAt(0)
         remaining = queue.size
-        launcher.launch(appRepository.uninstallIntent(next))
+        try {
+            launcher.launch(appRepository.uninstallIntent(next))
+        } catch (e: android.content.ActivityNotFoundException) {
+            // No uninstall confirmation screen could be resolved for this
+            // package (rare, but better to skip it than stall the whole
+            // bulk operation on one app).
+            advance()
+        }
     }
 }

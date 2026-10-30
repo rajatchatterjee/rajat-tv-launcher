@@ -37,7 +37,7 @@ class ThemeRepository(private val context: Context) {
     val currentTheme: StateFlow<LauncherTheme> = _currentTheme.asStateFlow()
 
     private fun readTheme(): LauncherTheme {
-        val base = ThemePresets.byId(prefs.getString(Keys.THEME_ID, null) ?: ThemePresets.Midnight.id)
+        val base = ThemePresets.byId(prefs.getString(Keys.THEME_ID, null) ?: ThemePresets.Crimson.id)
         val customBackgroundHex = prefs.getString(Keys.CUSTOM_BACKGROUND_HEX, null)
         val customAccentHex = prefs.getString(Keys.CUSTOM_ACCENT_HEX, null)
         return base.copy(
