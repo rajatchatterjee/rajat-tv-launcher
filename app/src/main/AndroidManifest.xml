@@ -23,6 +23,13 @@
          TV is on Wi-Fi, Ethernet, or offline. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Settings › Diagnostics: lets the launcher *attempt* to read the TV
+         provider (channels / preview programs / Watch Next) to show whether
+         this TV exposes other apps' preview rows. "normal" protection level
+         (and no longer enforced on newer Android), so it adds no install
+         prompt and can't cause "App not installed". -->
+    <uses-permission android:name="com.android.providers.tv.permission.READ_EPG_DATA" />
+
     <!-- Modern (non-sensitive) replacement for QUERY_ALL_PACKAGES: tells
          Android exactly which other apps we need to see — anything with
          a TV or phone/tablet launcher entry point — without requesting
@@ -36,6 +43,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Diagnostics: see the TV provider and the settings apps so the
+             developer-options shortcuts can be resolved on Android 11+. -->
+        <provider android:authorities="android.media.tv" />
+        <package android:name="com.android.tv.settings" />
+        <package android:name="com.android.settings" />
     </queries>
 
     <application

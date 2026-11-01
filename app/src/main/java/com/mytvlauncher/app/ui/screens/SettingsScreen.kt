@@ -15,6 +15,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
@@ -61,6 +62,7 @@ enum class SettingsPage(val title: String) {
     LAYOUT("Layout & Grid"),
     REMOTE("Remote & Navigation"),
     CLOCK("Clock & Date Format"),
+    DIAGNOSTICS("Diagnostics"),
     ABOUT("About")
 }
 
@@ -121,6 +123,9 @@ fun SettingsScreen(
                 )
             }
         }
+        SettingsPage.DIAGNOSTICS -> SubPage(SettingsPage.DIAGNOSTICS, settings, onBack = { onPage(null) }) { first ->
+            DiagnosticsContent(settings, first)
+        }
         SettingsPage.ABOUT -> SubPage(SettingsPage.ABOUT, settings, onBack = { onPage(null) }) { first ->
             val context = LocalContext.current
             val version = remember {
@@ -157,6 +162,7 @@ private fun SettingsHome(
             SettingsRow("Layout & Grid", theme, icon = Icons.Filled.GridView) { onPage(SettingsPage.LAYOUT) }
             SettingsRow("Remote & Navigation", theme, icon = Icons.Filled.SettingsRemote) { onPage(SettingsPage.REMOTE) }
             SettingsRow("Clock & Date Format", theme, icon = Icons.Filled.Schedule) { onPage(SettingsPage.CLOCK) }
+            SettingsRow("Diagnostics", theme, icon = Icons.Filled.BugReport, subtitle = "ADB and preview-row checks") { onPage(SettingsPage.DIAGNOSTICS) }
             SettingsRow("About", theme, icon = Icons.Filled.Info) { onPage(SettingsPage.ABOUT) }
         }
     }
@@ -354,5 +360,44 @@ private fun ClockToggle(checked: Boolean, theme: LauncherTheme, onClick: () -> U
             .padding(4.dp)
     ) {
         ToggleSwitch(checked, theme)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Diagnostics: ADB + preview-row access checks, run on the TV itself.
+
+@Composable
+private fun DiagnosticsContent(settings: LauncherSettings, first: FocusRequester) {
+    val context = LocalContext.current
+    val theme = settings.theme
+    var lines by remember { mutableStateOf<List<com.mytvlauncher.app.data.Diagnostics.Line>?>(null) }
+    var runId by remember { mutableStateOf(0) }
+    LaunchedEffect(runId) {
+        lines = null
+        lines = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.mytvlauncher.app.data.Diagnostics.run(context)
+        }
+    }
+    fun launch(intent: android.content.Intent) {
+        try { context.startActivity(intent) } catch (e: Exception) {
+            android.widget.Toast.makeText(context, "This TV blocked that screen", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    SettingsRow("Run checks again", theme, subtitle = "Re-test after changing a setting", focusRequester = first) { runId++ }
+    val devIntents = remember(runId) { com.mytvlauncher.app.data.Diagnostics.devSettingsIntents(context) }
+    if (devIntents.isNotEmpty()) {
+        SettingsRow("Open Developer options", theme, subtitle = "Look for USB / Network / Wireless debugging") { launch(devIntents.first()) }
+    }
+    SettingsRow("Open About (tap Build 7× to unlock)", theme, subtitle = "Device Preferences › About") {
+        launch(com.mytvlauncher.app.data.Diagnostics.aboutIntent())
+    }
+    val result = lines
+    if (result == null) {
+        Text("Running checks…", color = theme.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+    } else {
+        result.forEach { line ->
+            val mark = when (line.good) { true -> "✓  "; false -> "✗  "; null -> "" }
+            InfoLine(line.label, mark + line.value, settings)
+        }
     }
 }

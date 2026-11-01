@@ -36,7 +36,12 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   Play, ZEE5, SonyLIV, news apps…) + manual add/remove; chips Recent / News /
   Sports / Entertainment.
 - **Settings**: Theme & Appearance, App Management, Layout & Grid, Remote &
-  Navigation, Clock & Date Format, About (shows build number).
+  Navigation, Clock & Date Format, Diagnostics, About (shows build number).
+- **Diagnostics** (`data/Diagnostics.kt`): on-TV checks for developer
+  options / USB debugging / wireless debugging flags, adb TCP port props, a
+  localhost:5555 probe, the TV's IP, shortcuts into hidden developer
+  settings, and whether the TV provider exposes other apps' channels /
+  preview programs / Watch Next to this launcher.
 - **Themes**: 5 scenic wallpapers drawn in code (`ui/components/Wallpaper.kt`,
   no image files) — Cinematic Sunset (default), Aurora, Minimal Dark, Ocean
   Blue, Forest — plus the 8 older colour themes. Accent colour (6 choices),
@@ -133,6 +138,14 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   previously every CI build had a different random debug key, so new builds
   could not install over old ones. **One-time**: uninstall the old build
   before installing the first build signed with the new key.
+
+- **2026-11-01**: Added Settings › Diagnostics to verify ADB status and
+  preview-row access on the TV itself (Rajat wanted to double-check the "no
+  ADB" conclusion). Manifest gained `READ_EPG_DATA` (normal permission) and
+  `<queries>` entries for the `android.media.tv` provider and the settings
+  packages. Background: AOSP's TvProvider declares `ACCESS_ALL_EPG_DATA` as
+  `signature|privileged`, so even working ADB couldn't `pm grant` it — the
+  diagnostics confirm what *this* OEM build actually does.
 
 ## Known gotchas for future work
 
