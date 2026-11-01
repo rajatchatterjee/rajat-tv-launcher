@@ -119,10 +119,36 @@ class HomeOverrideService : AccessibilityService() {
             }
         }
 
-        fun openAccessibilitySettings(context: Context) {
-            for (i in listOf(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), Intent(Settings.ACTION_SETTINGS))) {
-                try { context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return } catch (_: Exception) { }
+        /**
+         * Opens the TV's Accessibility screen. The generic
+         * ACTION_ACCESSIBILITY_SETTINGS shows "No applications can handle this
+         * action" on this OnePlus TV, so try the Android TV Settings screens
+         * by name first, and only start intents that actually resolve.
+         * Returns false if nothing could be opened.
+         */
+        fun openAccessibilitySettings(context: Context): Boolean {
+            val tv = "com.android.tv.settings"
+            val candidates = listOf(
+                Intent().setComponent(ComponentName(tv, "$tv.accessibility.AccessibilityActivity")),
+                Intent().setComponent(ComponentName(tv, "$tv.accessibility.AccessibilityServicesActivity")),
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).setPackage(tv),
+                Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+                Intent().setComponent(ComponentName(tv, "$tv.device.DevicePrefFragment")),
+                Intent().setComponent(ComponentName(tv, "$tv.MainSettings")),
+                Intent(Settings.ACTION_SETTINGS)
+            )
+            val pm = context.packageManager
+            for (i in candidates) {
+                val resolved = try { pm.resolveActivity(i, 0) } catch (_: Exception) { null } ?: continue
+                // Some TVs resolve generic actions to a stub that only says
+                // "No applications can handle this action" — skip the resolver.
+                if (resolved.activityInfo?.name?.contains("Resolver", ignoreCase = true) == true) continue
+                try {
+                    context.startActivity(i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    return true
+                } catch (_: Exception) { }
             }
+            return false
         }
     }
 }

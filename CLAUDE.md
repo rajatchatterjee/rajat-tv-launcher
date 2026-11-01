@@ -231,6 +231,11 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   option). Added the Home button override accessibility service + Settings
   › Home button page, `<queries>` for HOME intents. Then (same day) a
   single on/off toggle and an "Open the TV's own home screen" button.
+- **2026-11-02**: On this TV the generic `ACTION_ACCESSIBILITY_SETTINGS`
+  shows "No applications can handle this action". `openAccessibilitySettings`
+  now tries `com.android.tv.settings` accessibility activities by name,
+  only starts intents that resolve (skipping resolver stubs), and falls
+  back to a toast with the manual path (Device Preferences › Accessibility).
 - **2026-11-01**: Settings home is now scrollable (9 rows overflowed the
   screen, so About was unreachable-looking) and starts with a "Check for
   updates" row plus "Build N" under the title.

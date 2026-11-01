@@ -578,7 +578,7 @@ private fun HomeButtonContent(settings: LauncherSettings, first: FocusRequester)
     ToggleRow(
         "Home button opens this launcher", serviceOn && !paused, theme,
         subtitle = when {
-            !serviceOn -> "Off — first time: turn on \"Rajat's TV Launcher – Home button\" in the Accessibility screen that opens"
+            !serviceOn -> "Off — to turn on: TV Settings › Device Preferences › Accessibility › \"Rajat's TV Launcher – Home button\""
             paused -> "Off — the Home button opens the TV's own home screen"
             else -> "On — the Home button brings you here"
         },
@@ -586,7 +586,9 @@ private fun HomeButtonContent(settings: LauncherSettings, first: FocusRequester)
     ) { on ->
         if (!serviceOn) {
             S.setEnabled(context, true); paused = false
-            S.openAccessibilitySettings(context)
+            if (!S.openAccessibilitySettings(context)) {
+                android.widget.Toast.makeText(context, "Open TV Settings › Device Preferences › Accessibility", android.widget.Toast.LENGTH_LONG).show()
+            }
         } else {
             S.setEnabled(context, on); paused = !on
         }
@@ -601,9 +603,12 @@ private fun HomeButtonContent(settings: LauncherSettings, first: FocusRequester)
     }
     if (serviceOn) {
         SettingsRow("Accessibility settings", theme, subtitle = "Where the override service is switched on or off completely") {
-            S.openAccessibilitySettings(context)
+            if (!S.openAccessibilitySettings(context)) {
+                android.widget.Toast.makeText(context, "Open TV Settings › Device Preferences › Accessibility", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
+    InfoLine("Turn it on by hand", "TV Settings (gear) › Device Preferences › Accessibility › \"Rajat's TV Launcher – Home button\" (may be under Services) › On.", settings)
     InfoLine("How it works", "When the TV's own home screen appears, this launcher opens on top of it straight away. You may see a quick flash of the old home screen.", settings)
     InfoLine("Greyed out?", "On some TVs: Settings › Apps › Rajat's TV Launcher › ⋮ / More › \"Allow restricted settings\", then try again.", settings)
     InfoLine("TV's home app", if (stock.isEmpty()) "Not detected" else stock.joinToString(), settings)
