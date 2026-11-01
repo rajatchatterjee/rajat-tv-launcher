@@ -48,6 +48,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Home override: find the TV's own home-screen app(s). -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <!-- Search: voice input, and trailers in the TV YouTube app. -->
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
@@ -87,6 +92,21 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Home button override (TV Settings › Accessibility). For TVs that
+             don't let you choose a default home app. -->
+        <service
+            android:name=".home.HomeOverrideService"
+            android:exported="false"
+            android:label="@string/home_override_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/home_override_service" />
+        </service>
 
         <!-- Screensaver: TV Settings › Screen saver › "Rajat's TV Launcher". -->
         <service

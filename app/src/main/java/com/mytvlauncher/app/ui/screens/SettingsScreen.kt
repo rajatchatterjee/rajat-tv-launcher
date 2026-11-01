@@ -17,8 +17,10 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -66,6 +68,7 @@ enum class SettingsPage(val title: String) {
     LAYOUT("Layout & Grid"),
     REMOTE("Remote & Navigation"),
     CLOCK("Clock & Date Format"),
+    HOME_BUTTON("Home button"),
     KIDS("Kids mode"),
     COMPANION("Phone companion"),
     DIAGNOSTICS("Diagnostics"),
@@ -88,6 +91,9 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     when (page) {
+        SettingsPage.HOME_BUTTON -> SubPage(SettingsPage.HOME_BUTTON, settings, onBack = { onPage(null) }) { first ->
+            HomeButtonContent(settings, first)
+        }
         SettingsPage.COMPANION -> SubPage(SettingsPage.COMPANION, settings, onBack = { onPage(null) }) { first ->
             CompanionContent(companion, settings, first)
         }
@@ -246,6 +252,7 @@ private fun SettingsHome(
                     else -> com.mytvlauncher.app.data.Updater.check(context)
                 }
             }
+            SettingsRow("Home button", theme, icon = Icons.Filled.Home, subtitle = "Make the remote's Home button open this launcher") { onPage(SettingsPage.HOME_BUTTON) }
             SettingsRow("Theme & Appearance", theme, icon = Icons.Filled.Palette) { onPage(SettingsPage.THEME) }
             SettingsRow("App Management", theme, icon = Icons.Filled.Apps, subtitle = "Select and uninstall apps") { onAppManagement() }
             SettingsRow("Layout & Grid", theme, icon = Icons.Filled.GridView) { onPage(SettingsPage.LAYOUT) }
@@ -544,3 +551,52 @@ private fun qrBitmap(text: String, size: Int): android.graphics.Bitmap? = try {
     val pixels = IntArray(size * size) { i -> if (matrix[i % size, i / size]) android.graphics.Color.BLACK else android.graphics.Color.WHITE }
     android.graphics.Bitmap.createBitmap(pixels, size, size, android.graphics.Bitmap.Config.ARGB_8888)
 } catch (e: Exception) { null }
+
+// ---------------------------------------------------------------------------
+// Home button: the accessibility-service override for TVs without a
+// "default home app" setting.
+
+@Composable
+private fun HomeButtonContent(settings: LauncherSettings, first: FocusRequester) {
+    val theme = settings.theme
+    val context = LocalContext.current
+    val S = com.mytvlauncher.app.home.HomeOverrideService
+    // Re-check whenever this page comes back into view (returning from TV settings).
+    var tick by remember { mutableStateOf(0) }
+    val owner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    DisposableEffect(owner) {
+        val obs = androidx.lifecycle.LifecycleEventObserver { _, e -> if (e == androidx.lifecycle.Lifecycle.Event.ON_RESUME) tick++ }
+        owner.lifecycle.addObserver(obs)
+        onDispose { owner.lifecycle.removeObserver(obs) }
+    }
+    val serviceOn = remember(tick) { S.isServiceOn(context) }
+    var paused by remember { mutableStateOf(!S.enabled(context)) }
+    val stock = remember { S.otherHomePackages(context).filter { pkg ->
+        try { context.packageManager.getApplicationInfo(pkg, 0); true } catch (e: Exception) { false }
+    } }
+
+    SettingsRow(
+        if (serviceOn) "Override is ON" else "Turn on the Home button override",
+        theme,
+        subtitle = if (serviceOn) "The Home button now brings you here · press to open Accessibility settings"
+            else "Opens TV Settings › Accessibility. Choose \"Rajat's TV Launcher – Home button\" and turn it on.",
+        focusRequester = first,
+        trailing = {
+            Icon(
+                if (serviceOn) Icons.Filled.Check else Icons.Filled.ChevronRight,
+                contentDescription = null,
+                tint = if (serviceOn) theme.accent else theme.textSecondary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    ) { S.openAccessibilitySettings(context) }
+    if (serviceOn) {
+        ToggleRow(
+            "Pause override", paused, theme,
+            subtitle = "Temporarily let the Home button open the TV's own home screen"
+        ) { S.setEnabled(context, !it); paused = it }
+    }
+    InfoLine("How it works", "When the TV's own home screen appears, this launcher opens on top of it straight away. You may see a quick flash of the old home screen.", settings)
+    InfoLine("Greyed out?", "On some TVs: Settings › Apps › Rajat's TV Launcher › ⋮ / More › \"Allow restricted settings\", then try again.", settings)
+    InfoLine("TV's home app", if (stock.isEmpty()) "Not detected" else stock.joinToString(), settings)
+}

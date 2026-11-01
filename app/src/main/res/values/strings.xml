@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Rajat\'s TV Launcher</string>
+    <string name="home_override_label">Rajat\'s TV Launcher – Home button</string>
+    <string name="home_override_description">Makes the remote\'s Home button open Rajat\'s TV Launcher instead of the TV\'s built-in home screen. It only watches which app\'s window comes to the front; it reads no screen content.</string>
 </resources>

@@ -67,6 +67,13 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   8765 in the launcher process, token-protected (`?t=`), serves one HTML
   page + JSON API (apps, icon, launch, search, open, mylist, save).
   Settings › Phone companion shows URL + QR (zxing). On/off + new token.
+- **Home button override** (`home/HomeOverrideService.kt`): this TV has
+  no "default home app" setting, so an AccessibilityService (window-state
+  events only, no content) watches for any other HOME-handling package
+  (queried + known TV launcher list) coming to the front and starts
+  MainActivity with CATEGORY_HOME (→ homeTicks → Home screen). 700 ms
+  debounce. Settings › Home button: status, link to TV Accessibility
+  settings, Pause toggle (prefs `home_override`), detected stock launcher.
 - **Apps**: grid (4–8 columns) with category chips All / Video / Music /
   Games / Tools / Other (`model/AppCategory.kt`: system category + known
   package/keyword lists) and a "+ Add App" tile that opens Play Store.
@@ -82,7 +89,7 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   Play, ZEE5, SonyLIV, news apps…) + manual add/remove; chips Recent / News /
   Sports / Entertainment.
 - **Settings**: (scrollable; header shows "Build N"; first row = Check for
-  updates) Theme & Appearance, App Management, Layout & Grid, Remote &
+  updates, then Home button) Theme & Appearance, App Management, Layout & Grid, Remote &
   Navigation, Clock & Date Format, Kids mode, Phone companion, Diagnostics,
   About (shows build number). Layout & Grid also has Living background,
   Rotate Home spotlight, Navigation sounds and the Screensaver shortcut.
@@ -217,6 +224,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-02**: Rajat couldn't set a default launcher on the TV (no
+  option). Added the Home button override accessibility service + Settings
+  › Home button page, `<queries>` for HOME intents.
 - **2026-11-01**: Settings home is now scrollable (9 rows overflowed the
   screen, so About was unreachable-looking) and starts with a "Check for
   updates" row plus "Build N" under the title.
@@ -285,5 +295,8 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   focusable: Compose focus search uses the transformed bounds, so a
   lifted/shifted tile breaks Up/Down navigation. Order: focusRequester →
   onFocusChanged → tvClickable → graphicsLayer → shadow/clip.
+- **Default home app can't be set on this TV** — rely on the accessibility
+  override. On Android 13+ sideloaded apps may need "Allow restricted
+  settings" in App info before the accessibility toggle is enabled.
 - `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
   (the right-hand widget) comes before it and is passed by name.
