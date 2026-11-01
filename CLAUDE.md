@@ -77,6 +77,20 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   settings), "Open the TV's own home screen" (one-time `bypass` pref,
   cleared when any non-launcher window comes to front), detected stock
   launcher.
+- **Home watcher** (`home/HomeWatcherService.kt`) — the override that
+  actually works on this TV (its Accessibility screen only shows High
+  contrast). Foreground service (`specialUse`), polls
+  `UsageStatsManager.queryEvents` every 450 ms while the screen is on
+  (3 s when off); when a stock HOME package hits MOVE_TO_FOREGROUND it
+  starts MainActivity (CATEGORY_HOME). Needs **Usage access** + **Display
+  over other apps** (Settings › Apps › Special app access — both exist on
+  this TV); overlay is what permits the background activity start on
+  Android 10+. Started by `sync()` from MainActivity.onResume, the Home
+  button page, and `HomeWatcherBootReceiver` (BOOT_COMPLETED,
+  MY_PACKAGE_REPLACED). Shares the `enabled`/`bypass` prefs with the
+  accessibility service. Settings › Home button now shows the on/off
+  toggle, the two permission rows with ✓, and "Open the TV's own home
+  screen".
 - **Apps**: grid (4–8 columns) with category chips All / Video / Music /
   Games / Tools / Other (`model/AppCategory.kt`: system category + known
   package/keyword lists) and a "+ Add App" tile that opens Play Store.
@@ -236,6 +250,10 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   now tries `com.android.tv.settings` accessibility activities by name,
   only starts intents that resolve (skipping resolver stubs), and falls
   back to a toast with the manual path (Device Preferences › Accessibility).
+- **2026-11-02**: TV's Accessibility screen only lists High contrast, so the
+  accessibility override can't be enabled. Added HomeWatcherService (usage
+  access + display over other apps + foreground service + boot receiver)
+  and rebuilt Settings › Home button around those two permissions.
 - **2026-11-01**: Settings home is now scrollable (9 rows overflowed the
   screen, so About was unreachable-looking) and starts with a "Check for
   updates" row plus "Build N" under the title.
@@ -304,8 +322,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   focusable: Compose focus search uses the transformed bounds, so a
   lifted/shifted tile breaks Up/Down navigation. Order: focusRequester →
   onFocusChanged → tvClickable → graphicsLayer → shadow/clip.
-- **Default home app can't be set on this TV** — rely on the accessibility
-  override. On Android 13+ sideloaded apps may need "Allow restricted
+- **Default home app can't be set on this TV**, and its Accessibility
+  screen hides third-party services — rely on HomeWatcherService (usage
+  access + overlay). The accessibility service is kept for other TVs. On Android 13+ sideloaded apps may need "Allow restricted
   settings" in App info before the accessibility toggle is enabled.
 - `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
   (the right-hand widget) comes before it and is passed by name.

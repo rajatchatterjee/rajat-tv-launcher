@@ -68,6 +68,8 @@ class MainActivity : ComponentActivity() {
         lifecycleScope.launch { appRepository.refresh() }
         // Kids mode: count time spent in the app a kid opened.
         kidsRepository.endSession()
+        // Home button override (usage access + overlay): (re)start if allowed.
+        com.mytvlauncher.app.home.HomeWatcherService.sync(this)
         // Self-update: check GitHub Releases every few hours, and if we sent
         // the user to "Install unknown apps" and they allowed it, carry on.
         Updater.checkIfDue(this)

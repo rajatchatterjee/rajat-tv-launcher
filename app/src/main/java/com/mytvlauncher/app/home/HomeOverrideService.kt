@@ -69,6 +69,14 @@ class HomeOverrideService : AccessibilityService() {
         fun setEnabled(context: Context, on: Boolean) =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("enabled", on).apply()
 
+        fun bypassed(context: Context): Boolean =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("bypass", false)
+
+        fun clearBypass(context: Context) {
+            val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            if (p.getBoolean("bypass", false)) p.edit().putBoolean("bypass", false).apply()
+        }
+
         /** Is our accessibility service switched on in TV settings? */
         fun isServiceOn(context: Context): Boolean {
             val me = ComponentName(context, HomeOverrideService::class.java)

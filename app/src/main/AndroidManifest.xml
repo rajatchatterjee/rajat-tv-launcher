@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature
         android:name="android.software.leanback"
@@ -27,6 +28,18 @@
          "Install unknown apps" for the launcher once; each update then needs
          just one "Install" press, no Downloader app. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <!-- Home button override without accessibility (home/HomeWatcherService):
+         Usage access to see the TV's home screen come to the front, Display
+         over other apps to be allowed to open ourselves from the background,
+         a foreground service to keep watching, and boot to restart it. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Settings › Diagnostics: lets the launcher *attempt* to read the TV
          provider (channels / preview programs / Watch Next) to show whether
@@ -107,6 +120,23 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/home_override_service" />
         </service>
+
+        <service
+            android:name=".home.HomeWatcherService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Brings the user's chosen TV launcher forward when the TV's built-in home screen opens" />
+        </service>
+        <receiver
+            android:name=".home.HomeWatcherBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Screensaver: TV Settings › Screen saver › "Rajat's TV Launcher". -->
         <service

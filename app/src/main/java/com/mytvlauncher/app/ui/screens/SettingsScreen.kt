@@ -569,47 +569,62 @@ private fun HomeButtonContent(settings: LauncherSettings, first: FocusRequester)
         owner.lifecycle.addObserver(obs)
         onDispose { owner.lifecycle.removeObserver(obs) }
     }
-    val serviceOn = remember(tick) { S.isServiceOn(context) }
-    var paused by remember { mutableStateOf(!S.enabled(context)) }
+    val W = com.mytvlauncher.app.home.HomeWatcherService
+    val accOn = remember(tick) { S.isServiceOn(context) }
+    val usageOk = remember(tick) { W.hasUsageAccess(context) }
+    val overlayOk = remember(tick) { W.hasOverlay(context) }
+    val ready = accOn || (usageOk && overlayOk)
+    var enabled by remember { mutableStateOf(S.enabled(context)) }
+    LaunchedEffect(tick, enabled) { W.sync(context) }
     val stock = remember { S.otherHomePackages(context).filter { pkg ->
         try { context.packageManager.getApplicationInfo(pkg, 0); true } catch (e: Exception) { false }
     } }
+    fun toast(t: String) = android.widget.Toast.makeText(context, t, android.widget.Toast.LENGTH_LONG).show()
+    val usagePath = "TV Settings › Apps › Special app access › Usage access › Rajat's TV Launcher › On"
+    val overlayPath = "TV Settings › Apps › Special app access › Display over other apps › Rajat's TV Launcher › On"
 
     ToggleRow(
-        "Home button opens this launcher", serviceOn && !paused, theme,
+        "Home button opens this launcher", ready && enabled, theme,
         subtitle = when {
-            !serviceOn -> "Off — to turn on: TV Settings › Device Preferences › Accessibility › \"Rajat's TV Launcher – Home button\""
-            paused -> "Off — the Home button opens the TV's own home screen"
+            !ready -> "Off — allow the two permissions below first, then come back"
+            !enabled -> "Off — the Home button opens the TV's own home screen"
             else -> "On — the Home button brings you here"
         },
         focusRequester = first
     ) { on ->
-        if (!serviceOn) {
-            S.setEnabled(context, true); paused = false
-            if (!S.openAccessibilitySettings(context)) {
-                android.widget.Toast.makeText(context, "Open TV Settings › Device Preferences › Accessibility", android.widget.Toast.LENGTH_LONG).show()
-            }
-        } else {
-            S.setEnabled(context, on); paused = !on
+        when {
+            !usageOk && !accOn -> { S.setEnabled(context, true); enabled = true; if (!W.openUsageAccess(context)) toast(usagePath) }
+            !overlayOk && !accOn -> { S.setEnabled(context, true); enabled = true; if (!W.openOverlay(context)) toast(overlayPath) }
+            else -> { S.setEnabled(context, on); enabled = on; W.sync(context) }
         }
     }
+    SettingsRow(
+        "1. Usage access", theme,
+        subtitle = if (usageOk) "Allowed" else "Needed — press, then turn on Rajat's TV Launcher",
+        trailing = { PermMark(usageOk, theme) }
+    ) { if (!W.openUsageAccess(context)) toast(usagePath) }
+    SettingsRow(
+        "2. Display over other apps", theme,
+        subtitle = if (overlayOk) "Allowed" else "Needed — press, then turn on Rajat's TV Launcher",
+        trailing = { PermMark(overlayOk, theme) }
+    ) { if (!W.openOverlay(context)) toast(overlayPath) }
     SettingsRow(
         "Open the TV's own home screen", theme,
         subtitle = "Just this once — the next time you press Home you're back here"
     ) {
-        if (!S.openStockHome(context)) {
-            android.widget.Toast.makeText(context, "Couldn't find the TV's home screen", android.widget.Toast.LENGTH_SHORT).show()
-        }
+        if (!S.openStockHome(context)) toast("Couldn't find the TV's home screen")
     }
-    if (serviceOn) {
-        SettingsRow("Accessibility settings", theme, subtitle = "Where the override service is switched on or off completely") {
-            if (!S.openAccessibilitySettings(context)) {
-                android.widget.Toast.makeText(context, "Open TV Settings › Device Preferences › Accessibility", android.widget.Toast.LENGTH_LONG).show()
-            }
-        }
-    }
-    InfoLine("Turn it on by hand", "TV Settings (gear) › Device Preferences › Accessibility › \"Rajat's TV Launcher – Home button\" (may be under Services) › On.", settings)
+    InfoLine("If a button doesn't open", "Usage access and Display over other apps are under TV Settings › Apps › Special app access.", settings)
     InfoLine("How it works", "When the TV's own home screen appears, this launcher opens on top of it straight away. You may see a quick flash of the old home screen.", settings)
-    InfoLine("Greyed out?", "On some TVs: Settings › Apps › Rajat's TV Launcher › ⋮ / More › \"Allow restricted settings\", then try again.", settings)
     InfoLine("TV's home app", if (stock.isEmpty()) "Not detected" else stock.joinToString(), settings)
+}
+
+@Composable
+private fun PermMark(ok: Boolean, theme: LauncherTheme) {
+    Icon(
+        if (ok) Icons.Filled.Check else Icons.Filled.ChevronRight,
+        contentDescription = if (ok) "Allowed" else null,
+        tint = if (ok) theme.accent else theme.textSecondary,
+        modifier = Modifier.size(20.dp)
+    )
 }
