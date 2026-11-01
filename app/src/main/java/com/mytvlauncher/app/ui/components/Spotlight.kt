@@ -168,6 +168,16 @@ fun ContentCard(
     Box(
         modifier
             .aspectRatio(16f / 9f)
+            // Focus/click BEFORE graphicsLayer: D-pad navigation must see the
+            // card's resting position. If the lift (scale + move up) applied
+            // to the focus bounds, the neighbour in the same row would count
+            // as "below" and Down would jump sideways.
+            .optionalFocusRequester(focusRequester)
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocused()
+            }
+            .tvClickable(onLongClick = onLongClick, onClick = onClick)
             .graphicsLayer {
                 scaleX = 1f + zoom * lift; scaleY = 1f + zoom * lift
                 translationY = -8.dp.toPx() * lift
@@ -175,12 +185,6 @@ fun ContentCard(
             .shadow((2 + 22 * lift).dp, ContentShape, clip = false, spotColor = if (focused) (Ambient.color ?: theme.accent) else Color.Black)
             .clip(ContentShape)
             .background(theme.surface)
-            .optionalFocusRequester(focusRequester)
-            .onFocusChanged {
-                focused = it.isFocused
-                if (it.isFocused) onFocused()
-            }
-            .tvClickable(onLongClick = onLongClick, onClick = onClick)
     ) {
         AsyncImage(
             model = item.backdropUrl?.replace("/w1280/", "/w500/") ?: item.posterUrl,

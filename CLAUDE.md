@@ -216,6 +216,11 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-01**: Fixed D-pad on Home (Rajat: "pressing down also takes it
+  right"). The focus-lift `graphicsLayer` (scale + translateY) sat *before*
+  the focus modifiers on ContentCard/AppCard, so focus search used the
+  lifted bounds and the same-row neighbour qualified as "below". Focus/click
+  modifiers now come before `graphicsLayer`.
 - **2026-11-01**: "Do all" feature batch (builds 17–19): universal search
   with voice and where-to-watch, My List, trailers, mood chips, "New on
   your apps" row (content cache layout bumped to `v2:` signature), kids
@@ -272,5 +277,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   device-owner powers; enforcement happens at the kids home.
 - **Screensaver selection** depends on the TV's settings exposing a
   screen-saver picker; Google TV builds may only offer Ambient mode.
+- **Never put a translating `graphicsLayer` before focus modifiers** on a
+  focusable: Compose focus search uses the transformed bounds, so a
+  lifted/shifted tile breaks Up/Down navigation. Order: focusRequester →
+  onFocusChanged → tvClickable → graphicsLayer → shadow/clip.
 - `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
   (the right-hand widget) comes before it and is passed by name.

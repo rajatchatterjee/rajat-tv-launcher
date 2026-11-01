@@ -74,6 +74,16 @@ fun AppCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
+                // Focus/keys/click BEFORE graphicsLayer so D-pad navigation
+                // uses the tile's resting bounds, not the lifted ones (see
+                // ContentCard in Spotlight.kt).
+                .then(keyModifier)
+                .optionalFocusRequester(focusRequester)
+                .onFocusChanged {
+                    focused = it.isFocused
+                    if (it.isFocused) onFocused()
+                }
+                .tvClickable(enabled = !dimmed, onLongClick = onLongClick, onClick = onClick)
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -83,13 +93,6 @@ fun AppCard(
                 }
                 .shadow(elevation.dp, CardShape, clip = false, spotColor = if (focused) (Ambient.color ?: theme.accent) else Color.Black)
                 .clip(CardShape)
-                .then(keyModifier)
-                .optionalFocusRequester(focusRequester)
-                .onFocusChanged {
-                    focused = it.isFocused
-                    if (it.isFocused) onFocused()
-                }
-                .tvClickable(enabled = !dimmed, onLongClick = onLongClick, onClick = onClick)
         ) {
             CardFace(app, settings)
             val ring = when {
