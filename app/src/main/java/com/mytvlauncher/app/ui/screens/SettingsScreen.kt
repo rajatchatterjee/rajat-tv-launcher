@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SettingsRemote
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -31,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +67,7 @@ enum class SettingsPage(val title: String) {
     REMOTE("Remote & Navigation"),
     CLOCK("Clock & Date Format"),
     KIDS("Kids mode"),
+    COMPANION("Phone companion"),
     DIAGNOSTICS("Diagnostics"),
     ABOUT("About")
 }
@@ -80,9 +83,14 @@ fun SettingsScreen(
     kids: com.mytvlauncher.app.data.KidsState,
     kidsRepo: com.mytvlauncher.app.data.KidsRepository,
     apps: List<com.mytvlauncher.app.model.LauncherApp>,
-    onShowPinPad: (String, (String) -> Boolean) -> Unit
+    onShowPinPad: (String, (String) -> Boolean) -> Unit,
+    companion: com.mytvlauncher.app.data.CompanionServer
 ) {
+    val context = LocalContext.current
     when (page) {
+        SettingsPage.COMPANION -> SubPage(SettingsPage.COMPANION, settings, onBack = { onPage(null) }) { first ->
+            CompanionContent(companion, settings, first)
+        }
         SettingsPage.KIDS -> SubPage(SettingsPage.KIDS, settings, onBack = { onPage(null) }) { first ->
             KidsSettingsContent(kids, kidsRepo, apps, settings, first, onShowPinPad)
         }
@@ -109,6 +117,19 @@ fun SettingsScreen(
                 "Rotate Home spotlight", settings.heroRotation, settings.theme,
                 subtitle = "The big Home banner cycles through shows and apps when idle"
             ) { repo.setHeroRotation(it) }
+            SettingsRow(
+                "Screensaver", settings.theme,
+                subtitle = "Pick \"Rajat's TV Launcher\" in the TV's screen-saver settings for drifting show art, clock and weather"
+            ) {
+                val ctx = context
+                val intents = listOf(
+                    android.content.Intent(android.provider.Settings.ACTION_DREAM_SETTINGS),
+                    android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+                )
+                for (i in intents) {
+                    try { ctx.startActivity(i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)); break } catch (e: Exception) { }
+                }
+            }
             ToggleRow(
                 "Navigation sounds", settings.navSounds, settings.theme,
                 subtitle = "A soft tick when moving around, a chime on OK"
@@ -205,6 +226,7 @@ private fun SettingsHome(
             SettingsRow("Remote & Navigation", theme, icon = Icons.Filled.SettingsRemote) { onPage(SettingsPage.REMOTE) }
             SettingsRow("Clock & Date Format", theme, icon = Icons.Filled.Schedule) { onPage(SettingsPage.CLOCK) }
             SettingsRow("Kids mode", theme, icon = Icons.Filled.ChildCare, subtitle = "Only the apps you allow, PIN to leave, daily limit") { onPage(SettingsPage.KIDS) }
+            SettingsRow("Phone companion", theme, icon = Icons.Filled.PhoneAndroid, subtitle = "Search and open things on the TV from your phone") { onPage(SettingsPage.COMPANION) }
             SettingsRow("Diagnostics", theme, icon = Icons.Filled.BugReport, subtitle = "ADB and preview-row checks") { onPage(SettingsPage.DIAGNOSTICS) }
             SettingsRow("About", theme, icon = Icons.Filled.Info) { onPage(SettingsPage.ABOUT) }
         }
@@ -444,3 +466,55 @@ private fun DiagnosticsContent(settings: LauncherSettings, first: FocusRequester
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// Phone companion: link + QR code for the LAN web page.
+
+@Composable
+private fun CompanionContent(companion: com.mytvlauncher.app.data.CompanionServer, settings: LauncherSettings, first: FocusRequester) {
+    val theme = settings.theme
+    var enabled by remember { mutableStateOf(companion.enabled) }
+    var tokenTick by remember { mutableStateOf(0) }
+    val url = remember(enabled, tokenTick) { if (enabled) companion.url() else null }
+    ToggleRow(
+        "Phone companion", enabled, theme,
+        subtitle = "A page on your home Wi-Fi to search, play and launch from your phone",
+        focusRequester = first
+    ) { companion.enabled = it; enabled = it }
+    if (enabled) {
+        if (url == null) {
+            InfoLine("Not connected", "Connect the TV to Wi-Fi or Ethernet to use the companion", settings)
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 6.dp)) {
+                val qr = remember(url) { qrBitmap(url, 360) }
+                if (qr != null) {
+                    androidx.compose.foundation.Image(
+                        qr.asImageBitmap(), contentDescription = "QR code for the phone companion",
+                        modifier = Modifier.size(170.dp).clip(RoundedCornerShape(10.dp))
+                    )
+                    Spacer(Modifier.width(20.dp))
+                }
+                Column(Modifier.weight(1f)) {
+                    Text("Scan with your phone's camera", color = theme.textPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(6.dp))
+                    Text("or open", color = theme.textSecondary, fontSize = 12.sp)
+                    Text(url, color = theme.accent, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Phone and TV must be on the same Wi-Fi. Add it to your home screen for one-tap access.", color = theme.textSecondary, fontSize = 12.sp)
+                }
+            }
+            SettingsRow("New link", theme, subtitle = "Makes the old link and QR stop working") {
+                companion.newToken(); tokenTick++
+            }
+        }
+    }
+}
+
+private fun qrBitmap(text: String, size: Int): android.graphics.Bitmap? = try {
+    val matrix = com.google.zxing.qrcode.QRCodeWriter().encode(
+        text, com.google.zxing.BarcodeFormat.QR_CODE, size, size,
+        mapOf(com.google.zxing.EncodeHintType.MARGIN to 1)
+    )
+    val pixels = IntArray(size * size) { i -> if (matrix[i % size, i / size]) android.graphics.Color.BLACK else android.graphics.Color.WHITE }
+    android.graphics.Bitmap.createBitmap(pixels, size, size, android.graphics.Bitmap.Config.ARGB_8888)
+} catch (e: Exception) { null }

@@ -8,7 +8,10 @@ import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.mytvlauncher.app.data.AppRepository
 import com.mytvlauncher.app.data.BulkUninstallController
+import com.mytvlauncher.app.data.CompanionServer
+import com.mytvlauncher.app.data.ContentRepository
 import com.mytvlauncher.app.data.KidsRepository
+import com.mytvlauncher.app.data.MyListRepository
 import com.mytvlauncher.app.data.SoundFx
 import com.mytvlauncher.app.data.SettingsRepository
 import com.mytvlauncher.app.data.Updater
@@ -23,6 +26,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var uninstaller: BulkUninstallController
     private lateinit var kidsRepository: KidsRepository
     private var sounds: SoundFx? = null
+    private lateinit var contentRepository: ContentRepository
+    private lateinit var myListRepository: MyListRepository
+    private lateinit var companion: CompanionServer
 
     /** Bumped when the remote's Home button is pressed while we're already showing. */
     private val homeTicks = MutableStateFlow(0)
@@ -36,6 +42,10 @@ class MainActivity : ComponentActivity() {
         uninstaller = BulkUninstallController(this, appRepository)
         kidsRepository = KidsRepository(applicationContext)
         sounds = try { SoundFx(applicationContext) } catch (e: Exception) { null }
+        contentRepository = ContentRepository(applicationContext)
+        myListRepository = MyListRepository(applicationContext)
+        companion = CompanionServer(applicationContext, appRepository, contentRepository, myListRepository)
+        if (companion.enabled) companion.start()
 
         setContent {
             LauncherRoot(
@@ -43,6 +53,9 @@ class MainActivity : ComponentActivity() {
                 settingsRepository = settingsRepository,
                 uninstaller = uninstaller,
                 kidsRepository = kidsRepository,
+                contentRepo = contentRepository,
+                myList = myListRepository,
+                companion = companion,
                 homeTicks = homeTicks
             )
         }

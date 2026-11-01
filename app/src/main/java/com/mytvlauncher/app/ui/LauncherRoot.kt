@@ -65,6 +65,9 @@ fun LauncherRoot(
     settingsRepository: SettingsRepository,
     uninstaller: BulkUninstallController,
     kidsRepository: com.mytvlauncher.app.data.KidsRepository,
+    contentRepo: com.mytvlauncher.app.data.ContentRepository,
+    myList: com.mytvlauncher.app.data.MyListRepository,
+    companion: com.mytvlauncher.app.data.CompanionServer,
     homeTicks: StateFlow<Int>
 ) {
     val context = LocalContext.current
@@ -109,11 +112,9 @@ fun LauncherRoot(
 
     // "Popular on Netflix / Prime…" rows (TMDB), refreshed when the installed
     // apps change or the 6-hour cache expires.
-    val contentRepo = remember { com.mytvlauncher.app.data.ContentRepository(context.applicationContext) }
     val contentRows by contentRepo.rows.collectAsState()
     LaunchedEffect(apps) { if (apps.isNotEmpty()) contentRepo.refreshIfDue(apps.map { it.packageName }.toSet()) }
     var spotlightBackdrop by remember { mutableStateOf<String?>(null) }
-    val myList = remember { com.mytvlauncher.app.data.MyListRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val openTitle: (com.mytvlauncher.app.data.ContentItem) -> Unit = { item ->
         val app = appRepository.appFor(item.packageName)
@@ -281,7 +282,8 @@ fun LauncherRoot(
                             kids = kids,
                             kidsRepo = kidsRepository,
                             apps = apps,
-                            onShowPinPad = { title, done -> pinRequest = title to done }
+                            onShowPinPad = { title, done -> pinRequest = title to done },
+                            companion = companion
                         )
                     }
                 }

@@ -198,7 +198,12 @@ fun rememberWeather(refreshKey: Any): WeatherInfo? {
     LaunchedEffect(refreshKey) {
         while (true) {
             val (lat, lon) = deviceLocationOrNull(context) ?: (FALLBACK_LAT to FALLBACK_LON)
-            withContext(Dispatchers.IO) { repo.fetchCurrentWeather(lat, lon) }?.let { weather = it }
+            withContext(Dispatchers.IO) { repo.fetchCurrentWeather(lat, lon) }?.let {
+                weather = it
+                // The screensaver shows the last reading.
+                context.getSharedPreferences("weather_cache", Context.MODE_PRIVATE).edit()
+                    .putInt("temp", it.tempC).putInt("code", it.weatherCode).apply()
+            }
             delay(30 * 60_000L)
         }
     }
