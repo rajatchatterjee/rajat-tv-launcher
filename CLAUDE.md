@@ -72,8 +72,11 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   events only, no content) watches for any other HOME-handling package
   (queried + known TV launcher list) coming to the front and starts
   MainActivity with CATEGORY_HOME (→ homeTicks → Home screen). 700 ms
-  debounce. Settings › Home button: status, link to TV Accessibility
-  settings, Pause toggle (prefs `home_override`), detected stock launcher.
+  debounce. Settings › Home button: one on/off toggle ("Home button opens
+  this launcher"; off = pause pref, first time opens Accessibility
+  settings), "Open the TV's own home screen" (one-time `bypass` pref,
+  cleared when any non-launcher window comes to front), detected stock
+  launcher.
 - **Apps**: grid (4–8 columns) with category chips All / Video / Music /
   Games / Tools / Other (`model/AppCategory.kt`: system category + known
   package/keyword lists) and a "+ Add App" tile that opens Play Store.
@@ -226,7 +229,8 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   spotlight.
 - **2026-11-02**: Rajat couldn't set a default launcher on the TV (no
   option). Added the Home button override accessibility service + Settings
-  › Home button page, `<queries>` for HOME intents.
+  › Home button page, `<queries>` for HOME intents. Then (same day) a
+  single on/off toggle and an "Open the TV's own home screen" button.
 - **2026-11-01**: Settings home is now scrollable (9 rows overflowed the
   screen, so About was unreachable-looking) and starts with a "Check for
   updates" row plus "Build N" under the title.

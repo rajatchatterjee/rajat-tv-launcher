@@ -33,8 +33,16 @@ class HomeOverrideService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
-        if (pkg == packageName || pkg !in stockHomes) return
-        if (!enabled(this)) return
+        val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (pkg !in stockHomes) {
+            // Left the TV's home screen for something real: the one-time pass
+            // from "Open TV's home screen" is used up.
+            if (pkg != "com.android.systemui" && prefs.getBoolean("bypass", false)) {
+                prefs.edit().putBoolean("bypass", false).apply()
+            }
+            return
+        }
+        if (pkg == packageName || !enabled(this) || prefs.getBoolean("bypass", false)) return
         redirect()
     }
 
@@ -86,6 +94,30 @@ class HomeOverrideService : AccessibilityService() {
             "com.oneplus.tv.launcher",
             "com.oneplus.tvlauncher"
         )
+
+        /**
+         * Show the TV's own home screen once, without the override snapping
+         * back. The pass ends as soon as you open anything else from there.
+         */
+        fun openStockHome(context: Context): Boolean {
+            val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+            val target = try {
+                context.packageManager.queryIntentActivities(home, 0)
+                    .map { it.activityInfo }
+                    .firstOrNull { it.packageName != context.packageName && it.packageName != "com.android.settings" && it.packageName != "com.android.tv.settings" }
+            } catch (e: Exception) { null } ?: return false
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("bypass", true).apply()
+            return try {
+                context.startActivity(
+                    Intent(home).setComponent(ComponentName(target.packageName, target.name))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+                true
+            } catch (e: Exception) {
+                context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean("bypass", false).apply()
+                false
+            }
+        }
 
         fun openAccessibilitySettings(context: Context) {
             for (i in listOf(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS), Intent(Settings.ACTION_SETTINGS))) {
