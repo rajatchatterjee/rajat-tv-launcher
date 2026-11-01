@@ -42,6 +42,31 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   motes, and live weather from Open-Meteo (rain, storm + lightning, clouds,
   fog, snow, sun glow by day, twinkling stars at night). Frame clock only
   ticks while the activity is STARTED. Toggle in Layout & Grid.
+- **Home extras**: spotlight buttons Open / Trailer (TMDB videos → YouTube
+  TV app, `AppRepository.openYouTube`) / My List; **mood chips** (`Mood`
+  enum in ContentRepository → per-service discover with genre/language/
+  runtime filters, session-cached); **My List** row; first content row is
+  **"New on your apps"** (recent films + TV with episodes airing).
+- **Search** (sidebar item, `ui/screens/SearchScreen.kt`): BasicTextField +
+  voice (`RecognizerIntent`), installed-app matches plus TMDB `search/multi`
+  with per-title watch providers in IN → "On your apps" / "Not on your apps".
+- **My List** (`data/MyListRepository.kt`): hold OK on any show card (Home,
+  search) or the spotlight button; JSON in SharedPreferences.
+- **Kids mode** (`data/KidsRepository.kt`, `ui/screens/KidsScreen.kt`):
+  Settings › Kids mode — allowed apps, 4-digit PIN (`PinPad`, shown by
+  LauncherRoot over everything), daily limit. When active, LauncherRoot
+  renders `KidsHome` instead of the normal layout. Time = from launching an
+  app on the kids home until MainActivity.onResume (`endSession`); apps
+  lock at the kids home when time's up (running apps aren't killed).
+- **Navigation sounds** (`data/SoundFx.kt`): synthesised WAVs via SoundPool,
+  played from `MainActivity.dispatchKeyEvent`; toggle in Layout & Grid.
+- **Screensaver** (`dream/LauncherDream.kt`, plain Views): cached backdrops
+  from `content_cache` with Ken Burns + crossfade, clock, date, last
+  weather (`weather_cache` prefs written by rememberWeather).
+- **Phone companion** (`data/CompanionServer.kt`): raw ServerSocket on port
+  8765 in the launcher process, token-protected (`?t=`), serves one HTML
+  page + JSON API (apps, icon, launch, search, open, mylist, save).
+  Settings › Phone companion shows URL + QR (zxing). On/off + new token.
 - **Apps**: grid (4–8 columns) with category chips All / Video / Music /
   Games / Tools / Other (`model/AppCategory.kt`: system category + known
   package/keyword lists) and a "+ Add App" tile that opens Play Store.
@@ -57,7 +82,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   Play, ZEE5, SonyLIV, news apps…) + manual add/remove; chips Recent / News /
   Sports / Entertainment.
 - **Settings**: Theme & Appearance, App Management, Layout & Grid, Remote &
-  Navigation, Clock & Date Format, Diagnostics, About (shows build number).
+  Navigation, Clock & Date Format, Kids mode, Phone companion, Diagnostics,
+  About (shows build number). Layout & Grid also has Living background,
+  Rotate Home spotlight, Navigation sounds and the Screensaver shortcut.
 - **Self-update** (`data/Updater.kt`): checks this repo's latest GitHub
   Release on resume (every 3 h) and from Settings › About; when a higher
   `build-N` exists an "Update · build N" pill appears in the top bar. It
@@ -85,14 +112,20 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
 
 ## Code map
 
-- `MainActivity.kt` — creates repositories, refreshes app list on resume.
+- `MainActivity.kt` — creates repositories (apps, settings, kids, content,
+  My List, companion server, sounds), refreshes app list and ends kids
+  sessions on resume, plays navigation sounds in `dispatchKeyEvent`.
 - `ui/LauncherRoot.kt` — wallpaper + sidebar + top bar + screen switching,
   Back handling, app-options dialog wiring.
 - `ui/screens/` — Home, Apps, Favourites, LiveTv, Settings, AppOptionsDialog.
 - `ui/components/` — Controls (buttons/chips/rows), AppTiles, Chrome
   (sidebar/top bar/weather), Wallpaper, TvModifiers.
 - `data/` — AppRepository, SettingsRepository, BulkUninstallController,
-  WeatherRepository. `model/` — LauncherApp, LauncherTheme, AppCategory.
+  WeatherRepository, ContentRepository (TMDB), MyListRepository,
+  KidsRepository, CompanionServer, Updater, Diagnostics, SoundFx.
+  `dream/` — LauncherDream. `model/` — LauncherApp, LauncherTheme, AppCategory.
+- `ui/screens/` also has SearchScreen and KidsScreen (KidsHome, PinPad,
+  KidsSettingsContent); `ui/components/` has Spotlight and LivingBackground.
 
 ## Build & deploy pipeline
 
@@ -183,6 +216,15 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-01**: "Do all" feature batch (builds 17–19): universal search
+  with voice and where-to-watch, My List, trailers, mood chips, "New on
+  your apps" row (content cache layout bumped to `v2:` signature), kids
+  mode with PIN and daily limit, navigation sounds, screensaver
+  (DreamService), phone companion web page with QR (zxing
+  `com.google.zxing:core:3.5.3`). Destination enum gained SEARCH (sidebar
+  index = enum ordinal). New manifest entries: RECOGNIZE_SPEECH and
+  YouTube TV `<queries>`, DreamService. None of this was tested on the TV
+  yet (Rajat away) — expect follow-up fixes.
 - **2026-11-01**: Rajat's TMDB v3 key committed in `gradle.properties`
   (`tmdbApiKey`) — Claude sessions can't set Actions secrets (proxy blocks
   the secrets API). Env/secret `TMDB_API_KEY` still overrides it.
@@ -223,5 +265,12 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   free read-only TMDB key; never put anything sensitive in BuildConfig.
 - `ACTION_SEARCH` deep-linking into streaming apps is best effort — not
   every app handles it; check on the TV if a service opens oddly.
+- **Companion server lives in the launcher process**: if Android kills
+  the launcher while another app is open, the phone page stops answering
+  until Home is shown again. A foreground service would fix it if needed.
+- **Kids time limits can't stop an app mid-play** without usage-access or
+  device-owner powers; enforcement happens at the kids home.
+- **Screensaver selection** depends on the TV's settings exposing a
+  screen-saver picker; Google TV builds may only offer Ambient mode.
 - `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
   (the right-hand widget) comes before it and is passed by name.

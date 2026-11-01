@@ -1,9 +1,12 @@
 # Rajat's TV Launcher
 
 A custom Android TV home screen launcher, built for OnePlus TV (Android TV OS).
-Sidebar navigation (Home, Apps, Favourites, Live TV, Settings), scenic
-wallpapers drawn in code, app categories, a long-press app options menu,
-reorderable favourites, a Live TV section, and bulk uninstall.
+A cinematic Home with a spotlight that follows what you highlight, real
+show artwork and "Popular on Netflix / Prime / JioHotstar" rows (TMDB), a
+living background with live weather, universal search with "where to
+watch", My List, trailers, mood filters, kids mode, a screensaver, a phone
+companion page, self-updates from GitHub — plus the sidebar, app grid,
+favourites, Live TV and bulk uninstall.
 
 ## What's in here
 
@@ -14,6 +17,13 @@ app/src/main/java/com/mytvlauncher/app/
   ui/screens/                       – Home, Apps, Favourites, Live TV, Settings, app options menu
   ui/components/                    – buttons/chips/rows, app cards, sidebar/top bar, wallpapers, remote handling
   data/AppRepository.kt             – finds/launches apps, remembers recently opened
+  data/ContentRepository.kt         – TMDB rows, moods, search + where-to-watch, trailers
+  data/MyListRepository.kt          – My List watchlist
+  data/KidsRepository.kt            – kids mode allowed apps, PIN, daily time
+  data/CompanionServer.kt           – phone companion web server (port 8765)
+  data/Updater.kt                   – self-update from GitHub Releases
+  data/SoundFx.kt                   – navigation sounds
+  dream/LauncherDream.kt            – screensaver
   data/SettingsRepository.kt        – all user settings (SharedPreferences)
   data/BulkUninstallController.kt   – walks the uninstall confirmation dialog across a selection
   model/                            – app, theme and category models
@@ -74,6 +84,26 @@ reversible.
 - **Bulk uninstall**: Apps → **Select** (or Settings → App Management), tick
   apps, **Delete**. Android requires confirming each uninstall individually,
   so you'll see the system dialog once per app. System apps can't be selected.
+
+### New features (Nov 2026)
+
+- **Home spotlight**: highlight anything and the big banner switches to it;
+  leave the remote alone and it rotates. Buttons: Open, Trailer, My List.
+- **Mood chips** above the rows: Funny, Thriller, Family night, Action,
+  Sci-fi, Romance, Hindi, Under 2 hours.
+- **Search** (sidebar): type or press the mic. Results show which of *your*
+  apps stream each title; OK opens it there. Hold OK on any show to add it
+  to **My List** (its own row on Home).
+- **Kids mode**: Settings › Kids mode — tick allowed apps, set a 4-digit
+  PIN and an optional daily limit, then Start. Leaving needs the PIN.
+  Time counts from when a kid opens an app until they come back home;
+  when it runs out, apps lock on the kids home.
+- **Screensaver**: Settings › Layout & Grid › Screensaver opens the TV's
+  screen-saver settings; choose "Rajat's TV Launcher".
+- **Phone companion**: Settings › Phone companion shows a QR code. Scan it
+  on the same Wi-Fi to search, play on TV, launch apps and see My List.
+- **Updates**: an "Update · build N" button appears in the top bar when a
+  new build is on GitHub (or Settings › About › Check for updates).
 
 ## Notes
 
