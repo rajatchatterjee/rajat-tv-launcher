@@ -81,7 +81,8 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
 - **Live TV**: auto-detected channel/news/sports apps (JioTV, Xstream, Tata
   Play, ZEE5, SonyLIV, news apps…) + manual add/remove; chips Recent / News /
   Sports / Entertainment.
-- **Settings**: Theme & Appearance, App Management, Layout & Grid, Remote &
+- **Settings**: (scrollable; header shows "Build N"; first row = Check for
+  updates) Theme & Appearance, App Management, Layout & Grid, Remote &
   Navigation, Clock & Date Format, Kids mode, Phone companion, Diagnostics,
   About (shows build number). Layout & Grid also has Living background,
   Rotate Home spotlight, Navigation sounds and the Screensaver shortcut.
@@ -216,6 +217,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-01**: Settings home is now scrollable (9 rows overflowed the
+  screen, so About was unreachable-looking) and starts with a "Check for
+  updates" row plus "Build N" under the title.
 - **2026-11-01**: Fixed D-pad on Home (Rajat: "pressing down also takes it
   right"). The focus-lift `graphicsLayer` (scale + translateY) sat *before*
   the focus modifiers on ContentCard/AppCard, so focus search used the

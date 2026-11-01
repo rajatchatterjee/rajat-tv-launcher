@@ -216,11 +216,37 @@ private fun SettingsHome(
     val theme = settings.theme
     val first = remember { FocusRequester() }
     LaunchedEffect(autoFocus) { if (autoFocus) first.requestFocusWhenReady() }
+    val context = LocalContext.current
+    val build = remember { com.mytvlauncher.app.data.Updater.currentBuild(context) }
+    val upd by com.mytvlauncher.app.data.Updater.state.collectAsState()
     Column(Modifier.widthIn(max = 560.dp).fillMaxHeight()) {
-        ScreenHeader("Settings", null, theme)
+        ScreenHeader("Settings", "Build $build", theme)
         Spacer(Modifier.height(16.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SettingsRow("Theme & Appearance", theme, icon = Icons.Filled.Palette, focusRequester = first) { onPage(SettingsPage.THEME) }
+        // Scrollable: there are more rows than fit on a TV screen, and a
+        // plain Column let focus move onto rows drawn off-screen.
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val updTitle = when (val s = upd) {
+                is com.mytvlauncher.app.data.Updater.State.Available -> "Update to build ${s.build}"
+                is com.mytvlauncher.app.data.Updater.State.Downloading -> "Downloading build ${s.build}… ${s.percent}%"
+                is com.mytvlauncher.app.data.Updater.State.Checking -> "Checking for updates…"
+                is com.mytvlauncher.app.data.Updater.State.UpToDate -> "Up to date (build ${s.build})"
+                is com.mytvlauncher.app.data.Updater.State.NeedsPermission -> "Allow \"Install unknown apps\", then press again"
+                is com.mytvlauncher.app.data.Updater.State.WaitingForConfirm -> "Press Install on the system dialog"
+                is com.mytvlauncher.app.data.Updater.State.Error -> "Update problem — press to retry"
+                else -> "Check for updates"
+            }
+            SettingsRow(updTitle, theme, icon = Icons.Filled.SystemUpdate, subtitle = "Installed: build $build", focusRequester = first) {
+                when (upd) {
+                    is com.mytvlauncher.app.data.Updater.State.Available,
+                    is com.mytvlauncher.app.data.Updater.State.NeedsPermission,
+                    is com.mytvlauncher.app.data.Updater.State.WaitingForConfirm -> com.mytvlauncher.app.data.Updater.install(context)
+                    else -> com.mytvlauncher.app.data.Updater.check(context)
+                }
+            }
+            SettingsRow("Theme & Appearance", theme, icon = Icons.Filled.Palette) { onPage(SettingsPage.THEME) }
             SettingsRow("App Management", theme, icon = Icons.Filled.Apps, subtitle = "Select and uninstall apps") { onAppManagement() }
             SettingsRow("Layout & Grid", theme, icon = Icons.Filled.GridView) { onPage(SettingsPage.LAYOUT) }
             SettingsRow("Remote & Navigation", theme, icon = Icons.Filled.SettingsRemote) { onPage(SettingsPage.REMOTE) }
