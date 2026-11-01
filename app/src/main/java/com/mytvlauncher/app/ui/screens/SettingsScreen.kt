@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChildCare
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
@@ -63,6 +64,7 @@ enum class SettingsPage(val title: String) {
     LAYOUT("Layout & Grid"),
     REMOTE("Remote & Navigation"),
     CLOCK("Clock & Date Format"),
+    KIDS("Kids mode"),
     DIAGNOSTICS("Diagnostics"),
     ABOUT("About")
 }
@@ -74,9 +76,16 @@ fun SettingsScreen(
     page: SettingsPage?,
     autoFocus: Boolean,
     onPage: (SettingsPage?) -> Unit,
-    onAppManagement: () -> Unit
+    onAppManagement: () -> Unit,
+    kids: com.mytvlauncher.app.data.KidsState,
+    kidsRepo: com.mytvlauncher.app.data.KidsRepository,
+    apps: List<com.mytvlauncher.app.model.LauncherApp>,
+    onShowPinPad: (String, (String) -> Boolean) -> Unit
 ) {
     when (page) {
+        SettingsPage.KIDS -> SubPage(SettingsPage.KIDS, settings, onBack = { onPage(null) }) { first ->
+            KidsSettingsContent(kids, kidsRepo, apps, settings, first, onShowPinPad)
+        }
         null -> SettingsHome(settings, autoFocus, onPage, onAppManagement)
         SettingsPage.THEME -> ThemePage(settings, repo, onBack = { onPage(null) })
         SettingsPage.LAYOUT -> SubPage(SettingsPage.LAYOUT, settings, onBack = { onPage(null) }) { first ->
@@ -100,6 +109,10 @@ fun SettingsScreen(
                 "Rotate Home spotlight", settings.heroRotation, settings.theme,
                 subtitle = "The big Home banner cycles through shows and apps when idle"
             ) { repo.setHeroRotation(it) }
+            ToggleRow(
+                "Navigation sounds", settings.navSounds, settings.theme,
+                subtitle = "A soft tick when moving around, a chime on OK"
+            ) { repo.setNavSounds(it) }
         }
         SettingsPage.REMOTE -> SubPage(SettingsPage.REMOTE, settings, onBack = { onPage(null) }) { first ->
             ToggleRow(
@@ -191,6 +204,7 @@ private fun SettingsHome(
             SettingsRow("Layout & Grid", theme, icon = Icons.Filled.GridView) { onPage(SettingsPage.LAYOUT) }
             SettingsRow("Remote & Navigation", theme, icon = Icons.Filled.SettingsRemote) { onPage(SettingsPage.REMOTE) }
             SettingsRow("Clock & Date Format", theme, icon = Icons.Filled.Schedule) { onPage(SettingsPage.CLOCK) }
+            SettingsRow("Kids mode", theme, icon = Icons.Filled.ChildCare, subtitle = "Only the apps you allow, PIN to leave, daily limit") { onPage(SettingsPage.KIDS) }
             SettingsRow("Diagnostics", theme, icon = Icons.Filled.BugReport, subtitle = "ADB and preview-row checks") { onPage(SettingsPage.DIAGNOSTICS) }
             SettingsRow("About", theme, icon = Icons.Filled.Info) { onPage(SettingsPage.ABOUT) }
         }

@@ -2,11 +2,14 @@ package com.mytvlauncher.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.mytvlauncher.app.data.AppRepository
 import com.mytvlauncher.app.data.BulkUninstallController
+import com.mytvlauncher.app.data.KidsRepository
+import com.mytvlauncher.app.data.SoundFx
 import com.mytvlauncher.app.data.SettingsRepository
 import com.mytvlauncher.app.data.Updater
 import com.mytvlauncher.app.ui.LauncherRoot
@@ -18,6 +21,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var appRepository: AppRepository
     private lateinit var settingsRepository: SettingsRepository
     private lateinit var uninstaller: BulkUninstallController
+    private lateinit var kidsRepository: KidsRepository
+    private var sounds: SoundFx? = null
 
     /** Bumped when the remote's Home button is pressed while we're already showing. */
     private val homeTicks = MutableStateFlow(0)
@@ -29,12 +34,15 @@ class MainActivity : ComponentActivity() {
         // Must be created in onCreate (before STARTED) — ActivityResultLauncher
         // registration requires it.
         uninstaller = BulkUninstallController(this, appRepository)
+        kidsRepository = KidsRepository(applicationContext)
+        sounds = try { SoundFx(applicationContext) } catch (e: Exception) { null }
 
         setContent {
             LauncherRoot(
                 appRepository = appRepository,
                 settingsRepository = settingsRepository,
                 uninstaller = uninstaller,
+                kidsRepository = kidsRepository,
                 homeTicks = homeTicks
             )
         }
@@ -45,12 +53,26 @@ class MainActivity : ComponentActivity() {
         // Reload the app list every time we come back — picks up installs,
         // and apps removed through the uninstall dialogs.
         lifecycleScope.launch { appRepository.refresh() }
+        // Kids mode: count time spent in the app a kid opened.
+        kidsRepository.endSession()
         // Self-update: check GitHub Releases every few hours, and if we sent
         // the user to "Install unknown apps" and they allowed it, carry on.
         Updater.checkIfDue(this)
         if (Updater.state.value is Updater.State.NeedsPermission && packageManager.canRequestPackageInstalls()) {
             Updater.install(this)
         }
+    }
+
+    /** Navigation sounds for every D-pad move / OK press, app-wide. */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0 && settingsRepository.state.value.navSounds) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> sounds?.tick()
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> sounds?.select()
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onNewIntent(intent: Intent) {

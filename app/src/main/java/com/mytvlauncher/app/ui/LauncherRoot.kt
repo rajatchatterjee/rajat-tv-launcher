@@ -64,6 +64,7 @@ fun LauncherRoot(
     appRepository: AppRepository,
     settingsRepository: SettingsRepository,
     uninstaller: BulkUninstallController,
+    kidsRepository: com.mytvlauncher.app.data.KidsRepository,
     homeTicks: StateFlow<Int>
 ) {
     val context = LocalContext.current
@@ -71,6 +72,9 @@ fun LauncherRoot(
     val apps by appRepository.apps.collectAsState()
     val recents by appRepository.recents.collectAsState()
     val homeTick by homeTicks.collectAsState()
+    val kids by kidsRepository.state.collectAsState()
+    // A PIN pad shown over everything: (title, onDone → accepted?).
+    var pinRequest by remember { mutableStateOf<Pair<String, (String) -> Boolean>?>(null) }
     val theme = settings.theme
 
     var destination by remember { mutableStateOf(Destination.HOME) }
@@ -165,7 +169,18 @@ fun LauncherRoot(
             )
         }
 
-        Row(Modifier.fillMaxSize()) {
+        if (kids.active) {
+            com.mytvlauncher.app.ui.screens.KidsHome(
+                kids = kids,
+                apps = apps,
+                settings = settings,
+                onLaunch = { app ->
+                    kidsRepository.startSession()
+                    appRepository.launch(app)
+                },
+                onExit = { kidsRepository.setActive(false); goTo(Destination.HOME) }
+            )
+        } else Row(Modifier.fillMaxSize()) {
             Sidebar(
                 theme = theme,
                 items = navItems,
@@ -262,14 +277,34 @@ fun LauncherRoot(
                             onAppManagement = {
                                 goTo(Destination.APPS)
                                 selectMode = true
-                            }
+                            },
+                            kids = kids,
+                            kidsRepo = kidsRepository,
+                            apps = apps,
+                            onShowPinPad = { title, done -> pinRequest = title to done }
                         )
                     }
                 }
             }
         }
 
-        optionsFor?.let { app ->
+        pinRequest?.let { req ->
+            key(req) {
+                com.mytvlauncher.app.ui.screens.PinPad(
+                    title = req.first,
+                    theme = theme,
+                    onDismiss = { pinRequest = null },
+                    onDone = { p ->
+                        val ok = req.second(p)
+                        // A handler may chain to a second pad (change PIN); only close our own.
+                        if (ok && pinRequest === req) pinRequest = null
+                        ok
+                    }
+                )
+            }
+        }
+
+        if (!kids.active) optionsFor?.let { app ->
             val details = remember(app) { appRepository.details(app) }
             AppOptionsDialog(
                 app = app,
