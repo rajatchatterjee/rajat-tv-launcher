@@ -19,8 +19,28 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
 - **Layout**: left sidebar (crown logo, Home / Apps / Favourites / Live TV /
   Settings), top-right bar (date · time, weather, Wi-Fi/Ethernet/offline
   icon, settings gear), full-screen wallpaper behind everything.
-- **Home**: "Good Evening, Rajat" greeting, Favourite Apps row, Recently
-  Opened row (stands in for the mockup's "Continue Watching" — see gotchas).
+- **Home** (`ui/screens/HomeScreen.kt`): a cinematic **spotlight** on top —
+  full-screen show backdrop (`ui/components/Spotlight.kt`
+  `SpotlightBackdrop`, drawn by LauncherRoot behind everything, Ken Burns
+  drift + crossfade) or, for apps, a drifting banner card. It follows focus
+  and auto-rotates every 8 s after 9 s idle (toggle in Layout & Grid). Below:
+  **"Popular on <service>"** rows for installed streaming apps (TMDB, see
+  below), Favourite Apps, Recently Opened. Without a TMDB key the spotlight
+  rotates favourite/recent app banners and a tip card explains the key.
+- **Content rows** (`data/ContentRepository.kt`): TMDB `discover` filtered
+  by watch provider in region IN (provider IDs matched at runtime by name:
+  netflix, amazonprimevideo, hotstar, jiocinema, sonyliv, zee5, appletv,
+  sunnxt → known TV package names). Cached 6 h in SharedPreferences; Coil
+  caches images. OK on a show sends `ACTION_SEARCH` with the title to that
+  app (`AppRepository.openTitle`), falling back to just opening the app.
+  Key = `TMDB_API_KEY` GitHub Actions secret → `BuildConfig.TMDB_API_KEY`
+  (v3 key → `api_key` param; long v4 token → Bearer header).
+- **Living background** (`ui/components/LivingBackground.kt`): one Canvas
+  over the wallpaper — drifting light pools tinted by `Ambient.color` (the
+  spotlight image's average colour, also used for focus glows), rising
+  motes, and live weather from Open-Meteo (rain, storm + lightning, clouds,
+  fog, snow, sun glow by day, twinkling stars at night). Frame clock only
+  ticks while the activity is STARTED. Toggle in Layout & Grid.
 - **Apps**: grid (4–8 columns) with category chips All / Video / Music /
   Games / Tools / Other (`model/AppCategory.kt`: system category + known
   package/keyword lists) and a "+ Add App" tile that opens Play Store.
@@ -155,6 +175,13 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   packages. Background: AOSP's TvProvider declares `ACCESS_ALL_EPG_DATA` as
   `signature|privileged`, so even working ADB couldn't `pm grant` it — the
   diagnostics confirm what *this* OEM build actually does.
+- **2026-11-01**: "Alive" Home redesign — spotlight hero with full-screen
+  show backdrops (focus-follow + idle rotation), TMDB "Popular on …" rows
+  for installed streaming apps, living background with ambient colour and
+  live weather, tiles lift and glow in the ambient colour. Added Coil
+  (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
+  `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
+  spotlight.
 - **2026-11-01**: Added in-app self-update from GitHub Releases
   (`REQUEST_INSTALL_PACKAGES` permission, `UpdateStatusReceiver` for
   PackageInstaller status, top-bar update pill, About › Check for updates).
@@ -183,5 +210,13 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
 - Lazy rows/grids may not have composed their items when a LaunchedEffect
   runs — use `requestFocusWhenReady()` (retries) rather than a bare
   `requestFocus()`, which throws if the node isn't attached.
+- **Preview rows of other apps are not readable**: verified against AOSP —
+  TvProvider's `ACCESS_ALL_EPG_DATA` is `signature|privileged`, so even ADB
+  `pm grant` can't give it to a sideloaded launcher. That's why content
+  comes from TMDB. Settings › Diagnostics shows what this TV actually allows.
+- **TMDB key ships inside the public APK** (Releases are public). Fine for a
+  free read-only TMDB key; never put anything sensitive in BuildConfig.
+- `ACTION_SEARCH` deep-linking into streaming apps is best effort — not
+  every app handles it; check on the TV if a service opens oddly.
 - `SettingsRow`'s last parameter is `onClick` (trailing lambda); `trailing`
   (the right-hand widget) comes before it and is passed by name.
