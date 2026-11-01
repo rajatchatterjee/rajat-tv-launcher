@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,11 +42,13 @@ import com.mytvlauncher.app.ui.screens.LiveTvScreen
 import com.mytvlauncher.app.ui.screens.SettingsPage
 import com.mytvlauncher.app.ui.screens.SettingsScreen
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
-enum class Destination { HOME, APPS, FAVOURITES, LIVE_TV, SETTINGS }
+enum class Destination { HOME, SEARCH, APPS, FAVOURITES, LIVE_TV, SETTINGS }
 
 private val navItems = listOf(
     NavItem("Home", Icons.Filled.Home),
+    NavItem("Search", Icons.Filled.Search),
     NavItem("Apps", Icons.Filled.Apps),
     NavItem("Favourites", Icons.Filled.FavoriteBorder),
     NavItem("Live TV", Icons.Filled.LiveTv),
@@ -106,6 +109,19 @@ fun LauncherRoot(
     val contentRows by contentRepo.rows.collectAsState()
     LaunchedEffect(apps) { if (apps.isNotEmpty()) contentRepo.refreshIfDue(apps.map { it.packageName }.toSet()) }
     var spotlightBackdrop by remember { mutableStateOf<String?>(null) }
+    val myList = remember { com.mytvlauncher.app.data.MyListRepository(context.applicationContext) }
+    val scope = rememberCoroutineScope()
+    val openTitle: (com.mytvlauncher.app.data.ContentItem) -> Unit = { item ->
+        val app = appRepository.appFor(item.packageName)
+        if (app != null) appRepository.openTitle(app, item.title)
+        else appRepository.toastMessage("Open ${item.serviceName.ifBlank { "the app" }} to watch “${item.title}”")
+    }
+    val playTrailer: (com.mytvlauncher.app.data.ContentItem) -> Unit = { item ->
+        scope.launch {
+            val key = contentRepo.trailerKey(item)
+            if (key != null) appRepository.openYouTube(key) else appRepository.toastMessage("No trailer found for “${item.title}”")
+        }
+    }
 
     // Back never leaves the launcher: it steps back toward Home and stops there.
     BackHandler {
@@ -186,11 +202,25 @@ fun LauncherRoot(
                             settings = settings,
                             autoFocus = autoFocus,
                             onLaunch = launch,
-                            onOpenTitle = { item ->
-                                appsByPackage[item.packageName]?.let { appRepository.openTitle(it, item.title) }
-                            },
+                            onOpenTitle = openTitle,
                             onOptions = openOptions,
-                            onBackdrop = { spotlightBackdrop = it }
+                            onBackdrop = { spotlightBackdrop = it },
+                            contentRepo = contentRepo,
+                            myList = myList,
+                            onTrailer = playTrailer,
+                            onToast = { appRepository.toastMessage(it) }
+                        )
+                        Destination.SEARCH -> com.mytvlauncher.app.ui.screens.SearchScreen(
+                            apps = apps,
+                            appsByPackage = appsByPackage,
+                            contentRepo = contentRepo,
+                            myList = myList,
+                            settings = settings,
+                            autoFocus = autoFocus,
+                            onLaunch = launch,
+                            onOpenTitle = openTitle,
+                            onOptions = openOptions,
+                            onToast = { appRepository.toastMessage(it) }
                         )
                         Destination.APPS -> AppsScreen(
                             apps = apps,

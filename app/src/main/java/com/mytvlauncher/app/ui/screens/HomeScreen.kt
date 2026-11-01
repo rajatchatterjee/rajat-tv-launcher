@@ -11,10 +11,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.Icon
@@ -31,7 +35,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mytvlauncher.app.data.ContentItem
+import com.mytvlauncher.app.data.ContentRepository
 import com.mytvlauncher.app.data.ContentRow
+import com.mytvlauncher.app.data.Mood
+import com.mytvlauncher.app.data.MyListRepository
 import com.mytvlauncher.app.data.LauncherSettings
 import com.mytvlauncher.app.model.LauncherApp
 import com.mytvlauncher.app.ui.components.AppCard
@@ -41,6 +48,7 @@ import com.mytvlauncher.app.ui.components.ContentCard
 import com.mytvlauncher.app.ui.components.KenBurnsBanner
 import com.mytvlauncher.app.ui.components.SectionTitle
 import com.mytvlauncher.app.ui.components.TvButton
+import com.mytvlauncher.app.ui.components.TvChip
 import com.mytvlauncher.app.ui.components.glass
 import com.mytvlauncher.app.ui.components.relativeTime
 import com.mytvlauncher.app.ui.components.requestFocusWhenReady
@@ -83,11 +91,34 @@ fun HomeScreen(
     onLaunch: (LauncherApp) -> Unit,
     onOpenTitle: (ContentItem) -> Unit,
     onOptions: (LauncherApp) -> Unit,
-    onBackdrop: (String?) -> Unit
+    onBackdrop: (String?) -> Unit,
+    contentRepo: ContentRepository,
+    myList: MyListRepository,
+    onTrailer: (ContentItem) -> Unit,
+    onToast: (String) -> Unit
 ) {
     val theme = settings.theme
     val firstRequester = remember { FocusRequester() }
-    val rows = remember(contentRows, appsByPackage) { contentRows.filter { it.packageName in appsByPackage } }
+    // Service rows need their app installed; mixed rows ("New on your apps") have no row package.
+    val rows = remember(contentRows, appsByPackage) {
+        contentRows
+            .map { r -> r.copy(items = r.items.filter { it.packageName in appsByPackage }) }
+            .filter { (it.packageName.isBlank() || it.packageName in appsByPackage) && it.items.isNotEmpty() }
+    }
+    val saved by myList.items.collectAsState()
+    val savedIds = remember(saved) { saved.map { it.id }.toSet() }
+    val toggleList: (ContentItem) -> Unit = { item ->
+        onToast(if (myList.toggle(item)) "Added “${item.title}” to My List" else "Removed “${item.title}” from My List")
+    }
+
+    // ---- Mood chips ----
+    var mood by remember { mutableStateOf<Mood?>(null) }
+    var moodItems by remember { mutableStateOf<List<ContentItem>?>(null) }
+    LaunchedEffect(mood) {
+        val m = mood ?: run { moodItems = null; return@LaunchedEffect }
+        moodItems = null
+        moodItems = contentRepo.mood(m, appsByPackage.keys)
+    }
     val hasContent = rows.isNotEmpty() || favourites.isNotEmpty() || recent.isNotEmpty()
     LaunchedEffect(hasContent) {
         if (autoFocus && hasContent) firstRequester.requestFocusWhenReady()
@@ -97,8 +128,8 @@ fun HomeScreen(
     val pool: List<Spotlight> = remember(rows, favourites, recent) {
         if (rows.isNotEmpty()) {
             // Round-robin the top shows of each service so the spotlight mixes them.
-            val perRow = rows.map { r -> r.items.take(4).map { Spotlight.Show(it, appsByPackage[r.packageName]) } }
-            (0 until 4).flatMap { i -> perRow.mapNotNull { it.getOrNull(i) } }
+            val perRow = rows.map { r -> r.items.take(4).map { Spotlight.Show(it, appsByPackage[it.packageName]) } }
+            (0 until 4).flatMap { i -> perRow.mapNotNull { it.getOrNull(i) } }.distinctBy { it.key }
         } else {
             val recentMap = recent.associate { it.first.packageName to it.second }
             (favourites + recent.map { it.first })
@@ -152,6 +183,9 @@ fun HomeScreen(
             settings = settings,
             onOpen = openSpot,
             onFocused = { current?.let { focusedSpot = it; focusTick++ } },
+            isSaved = { it.id in savedIds },
+            onTrailer = onTrailer,
+            onToggleList = toggleList,
             modifier = Modifier.fillMaxWidth().height(206.dp)
         )
 
@@ -160,29 +194,42 @@ fun HomeScreen(
             contentPadding = PaddingValues(top = 6.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            rows.forEachIndexed { rowIndex, row ->
-                item(key = "row-" + row.packageName) {
-                    Column {
-                        SectionTitle(row.title, theme)
-                        val app = appsByPackage[row.packageName]
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            contentPadding = PaddingValues(vertical = 10.dp, horizontal = 6.dp)
-                        ) {
-                            itemsIndexed(row.items, key = { _, c -> c.id }) { index, item ->
-                                ContentCard(
-                                    item = item,
-                                    serviceIcon = app?.icon,
-                                    theme = theme,
-                                    zoomOnFocus = settings.focusZoom,
-                                    modifier = Modifier.width(196.dp),
-                                    focusRequester = if (rowIndex == 0 && index == 0) firstRequester else null,
-                                    onFocused = { spotlight(Spotlight.Show(item, app)) },
-                                    onClick = { onOpenTitle(item) }
-                                )
-                            }
+            if (contentRepo.hasKey && rows.isNotEmpty()) {
+                item(key = "moods") {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)) {
+                        items(Mood.values().toList(), key = { it.name }) { m ->
+                            TvChip(m.label, selected = mood == m, theme = theme) { mood = if (mood == m) null else m }
                         }
                     }
+                }
+            }
+            mood?.let { m ->
+                item(key = "mood-row") {
+                    val list = moodItems
+                    if (list == null) {
+                        Text("Finding ${m.label.lowercase()} picks on your apps…", color = theme.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(6.dp))
+                    } else if (list.isEmpty()) {
+                        EmptyHint("Nothing ${m.label.lowercase()} found on your apps right now.", settings)
+                    } else {
+                        ShowRow("${m.label} on your apps", list, appsByPackage, settings, savedIds, null,
+                            onFocused = { spotlight(Spotlight.Show(it, appsByPackage[it.packageName])) },
+                            onOpen = onOpenTitle, onLongClick = toggleList)
+                    }
+                }
+            }
+            if (saved.isNotEmpty()) {
+                item(key = "my-list") {
+                    ShowRow("My List", saved, appsByPackage, settings, savedIds, null,
+                        onFocused = { spotlight(Spotlight.Show(it, appsByPackage[it.packageName])) },
+                        onOpen = onOpenTitle, onLongClick = toggleList)
+                }
+            }
+            rows.forEachIndexed { rowIndex, row ->
+                item(key = "row-" + row.title) {
+                    ShowRow(row.title, row.items, appsByPackage, settings, savedIds,
+                        if (rowIndex == 0) firstRequester else null,
+                        onFocused = { spotlight(Spotlight.Show(it, appsByPackage[it.packageName])) },
+                        onOpen = onOpenTitle, onLongClick = toggleList)
                 }
             }
 
@@ -252,6 +299,43 @@ fun HomeScreen(
     }
 }
 
+/** A titled row of show/film cards. */
+@Composable
+private fun ShowRow(
+    title: String,
+    items: List<ContentItem>,
+    appsByPackage: Map<String, LauncherApp>,
+    settings: LauncherSettings,
+    savedIds: Set<String>,
+    firstRequester: FocusRequester?,
+    onFocused: (ContentItem) -> Unit,
+    onOpen: (ContentItem) -> Unit,
+    onLongClick: (ContentItem) -> Unit
+) {
+    Column {
+        SectionTitle(title, settings.theme)
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            contentPadding = PaddingValues(vertical = 10.dp, horizontal = 6.dp)
+        ) {
+            itemsIndexed(items, key = { _, c -> title + c.id }) { index, item ->
+                ContentCard(
+                    item = item,
+                    serviceIcon = appsByPackage[item.packageName]?.icon,
+                    theme = settings.theme,
+                    zoomOnFocus = settings.focusZoom,
+                    modifier = Modifier.width(196.dp),
+                    focusRequester = if (index == 0) firstRequester else null,
+                    saved = item.id in savedIds,
+                    onLongClick = { onLongClick(item) },
+                    onFocused = { onFocused(item) },
+                    onClick = { onOpen(item) }
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SpotlightPanel(
     current: Spotlight?,
@@ -260,6 +344,9 @@ private fun SpotlightPanel(
     settings: LauncherSettings,
     onOpen: (Spotlight) -> Unit,
     onFocused: () -> Unit,
+    isSaved: (ContentItem) -> Boolean,
+    onTrailer: (ContentItem) -> Unit,
+    onToggleList: (ContentItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val theme = settings.theme
@@ -291,6 +378,21 @@ private fun SpotlightPanel(
                         style = ButtonStyle.PRIMARY,
                         modifier = Modifier.onFocusChanged { if (it.isFocused) onFocused() }
                     ) { onOpen(current) }
+                    if (current is Spotlight.Show) {
+                        val item = current.item
+                        Spacer(Modifier.width(10.dp))
+                        TvButton(
+                            "Trailer", theme, icon = Icons.Filled.Movie,
+                            modifier = Modifier.onFocusChanged { if (it.isFocused) onFocused() }
+                        ) { onTrailer(item) }
+                        Spacer(Modifier.width(10.dp))
+                        val inList = isSaved(item)
+                        TvButton(
+                            if (inList) "In My List" else "My List", theme,
+                            icon = if (inList) Icons.Filled.Check else Icons.Filled.Add,
+                            modifier = Modifier.onFocusChanged { if (it.isFocused) onFocused() }
+                        ) { onToggleList(item) }
+                    }
                     Spacer(Modifier.width(16.dp))
                 }
                 if (poolSize > 1) Dots(poolSize, poolIndex, theme.textPrimary)

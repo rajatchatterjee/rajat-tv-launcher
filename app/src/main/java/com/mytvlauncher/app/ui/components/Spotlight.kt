@@ -15,6 +15,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -155,6 +157,8 @@ fun ContentCard(
     zoomOnFocus: Boolean,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
+    saved: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
     onFocused: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -176,7 +180,7 @@ fun ContentCard(
                 focused = it.isFocused
                 if (it.isFocused) onFocused()
             }
-            .tvClickable(onClick = onClick)
+            .tvClickable(onLongClick = onLongClick, onClick = onClick)
     ) {
         AsyncImage(
             model = item.backdropUrl?.replace("/w1280/", "/w500/") ?: item.posterUrl,
@@ -204,6 +208,20 @@ fun ContentCard(
                 fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (saved) {
+            androidx.compose.material.Icon(
+                Icons.Filled.Bookmark,
+                contentDescription = "In My List",
+                tint = Color.White,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(5.dp)
+                    .size(18.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .padding(2.dp)
             )
         }
         Box(

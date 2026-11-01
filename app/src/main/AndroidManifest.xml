@@ -48,6 +48,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Search: voice input, and trailers in the TV YouTube app. -->
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <package android:name="com.google.android.youtube.tv" />
         <!-- Diagnostics: see the TV provider and the settings apps so the
              developer-options shortcuts can be resolved on Android 11+. -->
         <provider android:authorities="android.media.tv" />

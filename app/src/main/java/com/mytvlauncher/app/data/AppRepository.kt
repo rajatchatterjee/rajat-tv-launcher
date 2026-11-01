@@ -123,6 +123,21 @@ class AppRepository(private val context: Context) {
         launch(app)
     }
 
+    /** Play a YouTube video, preferring the TV YouTube app. */
+    fun openYouTube(videoKey: String) {
+        val uri = Uri.parse("https://www.youtube.com/watch?v=$videoKey")
+        val tvApp = Intent(Intent.ACTION_VIEW, uri).setPackage("com.google.android.youtube.tv").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val any = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        for (i in listOf(tvApp, any)) {
+            try { context.startActivity(i); return } catch (e: Exception) { }
+        }
+        toast("Couldn't open YouTube")
+    }
+
+    fun toastMessage(text: String) = toast(text)
+
+    fun appFor(packageName: String): LauncherApp? = _apps.value.firstOrNull { it.packageName == packageName }
+
     fun details(app: LauncherApp): AppDetails? = try {
         val info = context.packageManager.getPackageInfo(app.packageName, 0)
         val appInfo = info.applicationInfo
