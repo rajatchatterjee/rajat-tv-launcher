@@ -37,6 +37,13 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   Sports / Entertainment.
 - **Settings**: Theme & Appearance, App Management, Layout & Grid, Remote &
   Navigation, Clock & Date Format, Diagnostics, About (shows build number).
+- **Self-update** (`data/Updater.kt`): checks this repo's latest GitHub
+  Release on resume (every 3 h) and from Settings › About; when a higher
+  `build-N` exists an "Update · build N" pill appears in the top bar. It
+  downloads the APK into a PackageInstaller session and Android shows one
+  Install confirmation. Needs "Install unknown apps" allowed for the
+  launcher once (it opens that screen and resumes after). Downloader is now
+  only needed for a fresh install.
 - **Diagnostics** (`data/Diagnostics.kt`): on-TV checks for developer
   options / USB debugging / wireless debugging flags, adb TCP port props, a
   localhost:5555 probe, the TV's IP, shortcuts into hidden developer
@@ -73,7 +80,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   artifact — artifacts need a GitHub login and resolve to Azure blob storage
   URLs that aren't reachable from every network; a Release asset is a plain
   public `github.com` link).
-- **Getting the APK onto the TV**: this TV has no working wireless/network
+- **Updates after the first install**: the launcher updates itself from
+  the latest Release (see Self-update above) — no Downloader needed.
+- **Getting the APK onto the TV (fresh install)**: this TV has no working wireless/network
   ADB debugging option, and its USB port doesn't support device mode to a
   computer (USB config always reverts to "Charging"). The working method is:
   install the **Downloader** app (by AFTVnews) on the TV from the Play
@@ -146,6 +155,12 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   packages. Background: AOSP's TvProvider declares `ACCESS_ALL_EPG_DATA` as
   `signature|privileged`, so even working ADB couldn't `pm grant` it — the
   diagnostics confirm what *this* OEM build actually does.
+- **2026-11-01**: Added in-app self-update from GitHub Releases
+  (`REQUEST_INSTALL_PACKAGES` permission, `UpdateStatusReceiver` for
+  PackageInstaller status, top-bar update pill, About › Check for updates).
+  Silent updates are impossible for a non-system app; one Install press is
+  the minimum. The first build containing the updater still has to be
+  sideloaded via Downloader.
 
 ## Known gotchas for future work
 

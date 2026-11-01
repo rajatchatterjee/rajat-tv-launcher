@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SettingsRemote
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -137,7 +138,27 @@ fun SettingsScreen(
                 }
             }
             SettingsRow("Rajat's TV Launcher", settings.theme, subtitle = "Version $version", focusRequester = first, onClick = {}, trailing = {})
-            InfoLine("Installs from", "github.com/rajatchatterjee/rajat-tv-launcher → Releases, via the Downloader app", settings)
+            val upd by com.mytvlauncher.app.data.Updater.state.collectAsState()
+            val (updTitle, updSub) = when (val s = upd) {
+                is com.mytvlauncher.app.data.Updater.State.Available -> "Install build ${s.build}" to "Downloads from GitHub, then press Install"
+                is com.mytvlauncher.app.data.Updater.State.Downloading -> "Downloading build ${s.build}… ${s.percent}%" to "Keep the TV on"
+                is com.mytvlauncher.app.data.Updater.State.Checking -> "Checking GitHub…" to null
+                is com.mytvlauncher.app.data.Updater.State.UpToDate -> "Up to date" to "Build ${s.build} is the latest · press to check again"
+                is com.mytvlauncher.app.data.Updater.State.NeedsPermission -> "Allow \"Install unknown apps\"" to "Turn it on for Rajat's TV Launcher, come back, press again"
+                is com.mytvlauncher.app.data.Updater.State.WaitingForConfirm -> "Waiting for Install confirmation" to "Press Install on the system dialog"
+                is com.mytvlauncher.app.data.Updater.State.Error -> "Update problem — press to retry" to s.message
+                else -> "Check for updates" to "Looks for a newer build on GitHub"
+            }
+            SettingsRow(updTitle, settings.theme, icon = Icons.Filled.SystemUpdate, subtitle = updSub) {
+                val updater = com.mytvlauncher.app.data.Updater
+                when (upd) {
+                    is com.mytvlauncher.app.data.Updater.State.Available,
+                    is com.mytvlauncher.app.data.Updater.State.NeedsPermission,
+                    is com.mytvlauncher.app.data.Updater.State.WaitingForConfirm -> updater.install(context)
+                    else -> updater.check(context)
+                }
+            }
+            InfoLine("Installs from", "GitHub Releases of rajatchatterjee/rajat-tv-launcher — updates itself; Downloader only needed for a fresh install", settings)
             InfoLine("Made for", "OnePlus TV · Android TV", settings)
         }
     }

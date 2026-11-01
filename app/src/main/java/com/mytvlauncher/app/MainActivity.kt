@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import com.mytvlauncher.app.data.AppRepository
 import com.mytvlauncher.app.data.BulkUninstallController
 import com.mytvlauncher.app.data.SettingsRepository
+import com.mytvlauncher.app.data.Updater
 import com.mytvlauncher.app.ui.LauncherRoot
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -44,6 +45,12 @@ class MainActivity : ComponentActivity() {
         // Reload the app list every time we come back — picks up installs,
         // and apps removed through the uninstall dialogs.
         lifecycleScope.launch { appRepository.refresh() }
+        // Self-update: check GitHub Releases every few hours, and if we sent
+        // the user to "Install unknown apps" and they allowed it, carry on.
+        Updater.checkIfDue(this)
+        if (Updater.state.value is Updater.State.NeedsPermission && packageManager.canRequestPackageInstalls()) {
+            Updater.install(this)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Grain
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.SettingsEthernet
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.filled.Wifi
@@ -157,6 +158,7 @@ fun TopBar(settings: LauncherSettings, weather: WeatherInfo?, onSettings: () -> 
             modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(10.dp))
+        UpdatePill(theme)
         RoundIconButton(Icons.Filled.Settings, theme, size = 32.dp, contentDescription = "Settings", onClick = onSettings)
     }
 }
@@ -222,4 +224,22 @@ private fun deviceLocationOrNull(context: Context): Pair<Double, Double>? = try 
     }
 } catch (e: Exception) {
     null
+}
+
+/** Shows only while a newer GitHub build exists or is being installed. */
+@Composable
+private fun UpdatePill(theme: com.mytvlauncher.app.model.LauncherTheme) {
+    val context = LocalContext.current
+    val state by com.mytvlauncher.app.data.Updater.state.collectAsState()
+    val label = when (val s = state) {
+        is com.mytvlauncher.app.data.Updater.State.Available -> "Update · build ${s.build}"
+        is com.mytvlauncher.app.data.Updater.State.Downloading -> "Updating ${s.percent}%"
+        is com.mytvlauncher.app.data.Updater.State.NeedsPermission -> "Allow install, then press"
+        is com.mytvlauncher.app.data.Updater.State.WaitingForConfirm -> "Confirm install"
+        else -> null
+    } ?: return
+    TvButton(label, theme, style = ButtonStyle.PRIMARY, icon = Icons.Filled.SystemUpdate) {
+        com.mytvlauncher.app.data.Updater.install(context)
+    }
+    Spacer(Modifier.width(10.dp))
 }

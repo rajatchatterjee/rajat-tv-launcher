@@ -23,6 +23,11 @@
          TV is on Wi-Fi, Ethernet, or offline. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Self-update from GitHub Releases (data/Updater.kt). The user allows
+         "Install unknown apps" for the launcher once; each update then needs
+         just one "Install" press, no Downloader app. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Settings › Diagnostics: lets the launcher *attempt* to read the TV
          provider (channels / preview programs / Watch Next) to show whether
          this TV exposes other apps' preview rows. "normal" protection level
@@ -77,6 +82,10 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".data.UpdateStatusReceiver"
+            android:exported="false" />
 
     </application>
 </manifest>
