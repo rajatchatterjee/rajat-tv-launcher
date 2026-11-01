@@ -17,9 +17,12 @@ android {
         val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionCode = runNumber
         versionName = "1.$runNumber"
-        // TMDB key for the "Popular on Netflix / Prime / …" rows. Comes from
-        // the TMDB_API_KEY GitHub Actions secret; empty = rows hidden.
-        val tmdbKey = System.getenv("TMDB_API_KEY") ?: ""
+        // TMDB key for the "Popular on Netflix / Prime / …" rows. The
+        // TMDB_API_KEY GitHub Actions secret wins if set; otherwise the
+        // tmdbApiKey value in gradle.properties. It ships inside the public
+        // APK either way — fine for a free read-only TMDB key.
+        val tmdbKey = System.getenv("TMDB_API_KEY")?.takeIf { it.isNotBlank() }
+            ?: (project.findProperty("tmdbApiKey") as String?) ?: ""
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbKey\"")
     }
 

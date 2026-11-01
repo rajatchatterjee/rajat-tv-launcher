@@ -33,8 +33,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   sunnxt → known TV package names). Cached 6 h in SharedPreferences; Coil
   caches images. OK on a show sends `ACTION_SEARCH` with the title to that
   app (`AppRepository.openTitle`), falling back to just opening the app.
-  Key = `TMDB_API_KEY` GitHub Actions secret → `BuildConfig.TMDB_API_KEY`
-  (v3 key → `api_key` param; long v4 token → Bearer header).
+  Key = `TMDB_API_KEY` GitHub Actions secret if set, else `tmdbApiKey` in
+  `gradle.properties` (committed) → `BuildConfig.TMDB_API_KEY` (v3 key →
+  `api_key` param; long v4 token → Bearer header).
 - **Living background** (`ui/components/LivingBackground.kt`): one Canvas
   over the wallpaper — drifting light pools tinted by `Ambient.color` (the
   spotlight image's average colour, also used for focus glows), rising
@@ -182,6 +183,9 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-01**: Rajat's TMDB v3 key committed in `gradle.properties`
+  (`tmdbApiKey`) — Claude sessions can't set Actions secrets (proxy blocks
+  the secrets API). Env/secret `TMDB_API_KEY` still overrides it.
 - **2026-11-01**: Added in-app self-update from GitHub Releases
   (`REQUEST_INSTALL_PACKAGES` permission, `UpdateStatusReceiver` for
   PackageInstaller status, top-bar update pill, About › Check for updates).
@@ -214,7 +218,8 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   TvProvider's `ACCESS_ALL_EPG_DATA` is `signature|privileged`, so even ADB
   `pm grant` can't give it to a sideloaded launcher. That's why content
   comes from TMDB. Settings › Diagnostics shows what this TV actually allows.
-- **TMDB key ships inside the public APK** (Releases are public). Fine for a
+- **TMDB key is public**: committed in `gradle.properties` of this public
+  repo and inside the public APK. Fine for a
   free read-only TMDB key; never put anything sensitive in BuildConfig.
 - `ACTION_SEARCH` deep-linking into streaming apps is best effort — not
   every app handles it; check on the TV if a service opens oddly.
