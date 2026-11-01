@@ -92,6 +92,14 @@ fun SettingsScreen(
                 "Use app banners", settings.useBanners, settings.theme,
                 subtitle = "Show each app's TV banner; off shows its icon instead"
             ) { repo.setUseBanners(it) }
+            ToggleRow(
+                "Living background", settings.livingBackground, settings.theme,
+                subtitle = "Drifting light, particles and live weather (rain, clouds, sun, stars)"
+            ) { repo.setLivingBackground(it) }
+            ToggleRow(
+                "Rotate Home spotlight", settings.heroRotation, settings.theme,
+                subtitle = "The big Home banner cycles through shows and apps when idle"
+            ) { repo.setHeroRotation(it) }
         }
         SettingsPage.REMOTE -> SubPage(SettingsPage.REMOTE, settings, onBack = { onPage(null) }) { first ->
             ToggleRow(

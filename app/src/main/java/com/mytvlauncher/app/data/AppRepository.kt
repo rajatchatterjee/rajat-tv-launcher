@@ -102,6 +102,27 @@ class AppRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Open a show/movie from a content row. TMDB doesn't give per-service deep
+     * links, so ask the app to search for the title (most TV streaming apps
+     * accept ACTION_SEARCH); if it doesn't, just open the app.
+     */
+    fun openTitle(app: LauncherApp, title: String) {
+        val search = Intent(Intent.ACTION_SEARCH).apply {
+            setPackage(app.packageName)
+            putExtra(android.app.SearchManager.QUERY, title)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (search.resolveActivity(context.packageManager) != null) {
+            try {
+                context.startActivity(search)
+                writeRecents(_recents.value + (app.packageName to System.currentTimeMillis()))
+                return
+            } catch (e: Exception) { /* fall through to a plain launch */ }
+        }
+        launch(app)
+    }
+
     fun details(app: LauncherApp): AppDetails? = try {
         val info = context.packageManager.getPackageInfo(app.packageName, 0)
         val appInfo = info.applicationInfo

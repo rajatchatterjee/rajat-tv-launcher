@@ -30,6 +30,10 @@ data class LauncherSettings(
     val showAppNames: Boolean,
     val useBanners: Boolean,
     val focusZoom: Boolean,
+    /** Drifting light, particles and live-weather effects behind everything. */
+    val livingBackground: Boolean,
+    /** Home hero cycles through items on its own when the remote is idle. */
+    val heroRotation: Boolean,
     /** Package names, in the user's chosen order. */
     val favourites: List<String>,
     val favouritesSeeded: Boolean,
@@ -61,6 +65,8 @@ class SettingsRepository(context: Context) {
         const val SHOW_APP_NAMES = "show_app_names"
         const val USE_BANNERS = "use_banners"
         const val FOCUS_ZOOM = "focus_zoom"
+        const val LIVING_BACKGROUND = "living_background"
+        const val HERO_ROTATION = "hero_rotation"
         const val FAVOURITES = "favourites"
         const val LIVE_TV_ADDED = "live_tv_added"
         const val LIVE_TV_REMOVED = "live_tv_removed"
@@ -90,6 +96,8 @@ class SettingsRepository(context: Context) {
             showAppNames = prefs.getBoolean(Keys.SHOW_APP_NAMES, true),
             useBanners = prefs.getBoolean(Keys.USE_BANNERS, true),
             focusZoom = prefs.getBoolean(Keys.FOCUS_ZOOM, true),
+            livingBackground = prefs.getBoolean(Keys.LIVING_BACKGROUND, true),
+            heroRotation = prefs.getBoolean(Keys.HERO_ROTATION, true),
             favourites = prefs.getString(Keys.FAVOURITES, null).toList(),
             favouritesSeeded = prefs.contains(Keys.FAVOURITES),
             liveTvAdded = prefs.getString(Keys.LIVE_TV_ADDED, null).toList().toSet(),
@@ -127,6 +135,8 @@ class SettingsRepository(context: Context) {
     fun setShowAppNames(on: Boolean) = edit { putBoolean(Keys.SHOW_APP_NAMES, on) }
     fun setUseBanners(on: Boolean) = edit { putBoolean(Keys.USE_BANNERS, on) }
     fun setFocusZoom(on: Boolean) = edit { putBoolean(Keys.FOCUS_ZOOM, on) }
+    fun setLivingBackground(on: Boolean) = edit { putBoolean(Keys.LIVING_BACKGROUND, on) }
+    fun setHeroRotation(on: Boolean) = edit { putBoolean(Keys.HERO_ROTATION, on) }
 
     // ---- Favourites ----
 

@@ -17,6 +17,10 @@ android {
         val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionCode = runNumber
         versionName = "1.$runNumber"
+        // TMDB key for the "Popular on Netflix / Prime / …" rows. Comes from
+        // the TMDB_API_KEY GitHub Actions secret; empty = rows hidden.
+        val tmdbKey = System.getenv("TMDB_API_KEY") ?: ""
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbKey\"")
     }
 
     signingConfigs {
@@ -34,6 +38,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -67,5 +72,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.leanback:leanback:1.0.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     debugImplementation("androidx.compose.ui:ui-tooling:1.6.8")
 }

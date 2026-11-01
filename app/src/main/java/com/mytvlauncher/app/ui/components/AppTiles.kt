@@ -77,9 +77,11 @@ fun AppCard(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
+                    // Focused tiles lift toward you, not just grow.
+                    translationY = -6.dp.toPx() * ((elevation - 2f) / 14f)
                     alpha = if (dimmed) 0.35f else 1f
                 }
-                .shadow(elevation.dp, CardShape, clip = false, spotColor = if (focused) theme.accent else Color.Black)
+                .shadow(elevation.dp, CardShape, clip = false, spotColor = if (focused) (Ambient.color ?: theme.accent) else Color.Black)
                 .clip(CardShape)
                 .then(keyModifier)
                 .optionalFocusRequester(focusRequester)

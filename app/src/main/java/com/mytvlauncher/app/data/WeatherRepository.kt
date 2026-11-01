@@ -4,7 +4,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-data class WeatherInfo(val tempC: Int, val weatherCode: Int)
+data class WeatherInfo(val tempC: Int, val weatherCode: Int, val isDay: Boolean = true)
 
 /**
  * Pulls a one-shot current-conditions reading from Open-Meteo, a free
@@ -31,7 +31,8 @@ class WeatherRepository {
             val current = JSONObject(body).getJSONObject("current_weather")
             WeatherInfo(
                 tempC = current.getDouble("temperature").toInt(),
-                weatherCode = current.getInt("weathercode")
+                weatherCode = current.getInt("weathercode"),
+                isDay = current.optInt("is_day", 1) == 1
             )
         } catch (e: Exception) {
             null

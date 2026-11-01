@@ -100,6 +100,13 @@ fun LauncherRoot(
     }
     val weather = rememberWeather(permissionTick)
 
+    // "Popular on Netflix / Prime…" rows (TMDB), refreshed when the installed
+    // apps change or the 6-hour cache expires.
+    val contentRepo = remember { com.mytvlauncher.app.data.ContentRepository(context.applicationContext) }
+    val contentRows by contentRepo.rows.collectAsState()
+    LaunchedEffect(apps) { if (apps.isNotEmpty()) contentRepo.refreshIfDue(apps.map { it.packageName }.toSet()) }
+    var spotlightBackdrop by remember { mutableStateOf<String?>(null) }
+
     // Back never leaves the launcher: it steps back toward Home and stops there.
     BackHandler {
         when {
@@ -126,6 +133,21 @@ fun LauncherRoot(
 
     Box(Modifier.fillMaxSize()) {
         SceneBackground(theme, settings.backgroundStyle)
+        // Full-screen show artwork behind Home, fading in over the wallpaper.
+        androidx.compose.animation.AnimatedVisibility(
+            visible = destination == Destination.HOME && spotlightBackdrop != null,
+            enter = fadeIn(tween(900)),
+            exit = fadeOut(tween(500))
+        ) {
+            com.mytvlauncher.app.ui.components.SpotlightBackdrop(spotlightBackdrop)
+        }
+        if (settings.livingBackground) {
+            com.mytvlauncher.app.ui.components.LivingBackground(
+                theme = theme,
+                weather = weather,
+                overPhoto = destination == Destination.HOME && spotlightBackdrop != null
+            )
+        }
 
         Row(Modifier.fillMaxSize()) {
             Sidebar(
@@ -158,10 +180,17 @@ fun LauncherRoot(
                         Destination.HOME -> HomeScreen(
                             favourites = favouriteApps,
                             recent = recentApps,
+                            contentRows = contentRows,
+                            appsByPackage = appsByPackage,
+                            showTmdbHint = !contentRepo.hasKey,
                             settings = settings,
                             autoFocus = autoFocus,
                             onLaunch = launch,
-                            onOptions = openOptions
+                            onOpenTitle = { item ->
+                                appsByPackage[item.packageName]?.let { appRepository.openTitle(it, item.title) }
+                            },
+                            onOptions = openOptions,
+                            onBackdrop = { spotlightBackdrop = it }
                         )
                         Destination.APPS -> AppsScreen(
                             apps = apps,

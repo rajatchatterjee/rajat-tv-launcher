@@ -35,6 +35,10 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build debug APK
+        # TMDB_API_KEY powers the "Popular on Netflix / Prime" rows; if the
+        # secret isn't set the build still works and those rows stay hidden.
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
         run: gradle assembleDebug
 
       - name: Upload APK
