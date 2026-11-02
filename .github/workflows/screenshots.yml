@@ -1,0 +1,49 @@
+name: Screenshots
+
+# Renders every launcher screen (ScreenshotTour.kt) on the JVM with
+# Robolectric + Roborazzi and publishes the PNGs to the "screenshots"
+# pre-release. Pre-release + not "latest", so the in-app updater (which
+# reads releases/latest) never picks it up.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/src/**'
+      - 'app/build.gradle.kts'
+      - '.github/workflows/screenshots.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Render screens
+        run: gradle testDebugUnitTest --tests '*ScreenshotTour*' --continue
+      - name: Publish to the "screenshots" pre-release
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la app/build/screenshots || exit 1
+          gh release delete screenshots -y --cleanup-tag || true
+          gh release create screenshots app/build/screenshots/*.png \
+            --prerelease --latest=false \
+            --title "Launcher screenshots" \
+            --notes "Rendered from commit ${GITHUB_SHA::7} with sample apps and generated artwork."
