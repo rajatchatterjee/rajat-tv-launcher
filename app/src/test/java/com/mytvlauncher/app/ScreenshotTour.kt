@@ -212,7 +212,9 @@ class ScreenshotTour {
     private fun installFakeImages() {
         val loader = ImageLoader.Builder(ctx)
             .components {
-                add(Fetcher.Factory<String> { data, options, _ ->
+                // Coil maps String models to Uri before fetching, so match on Uri.
+                add(Fetcher.Factory<android.net.Uri> { uri, options, _ ->
+                    val data = uri.toString()
                     if (!data.startsWith("fake://art/")) null else Fetcher {
                         val n = data.removePrefix("fake://art/").substringBefore('/').toInt()
                         val poster = data.contains("w342")

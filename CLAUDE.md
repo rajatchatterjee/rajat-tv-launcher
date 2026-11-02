@@ -241,6 +241,16 @@ Built to match the "Rajat TV Launcher" UI/UX mockup sheet (8 screens).
   (`io.coil-kt:coil-compose:2.6.0`), `buildConfig = true`, CI passes the
   `TMDB_API_KEY` secret. New settings: Living background, Rotate Home
   spotlight.
+- **2026-11-02**: Screenshot tour — `app/src/test/.../ScreenshotTour.kt`
+  (Robolectric 4.12.2 + Roborazzi 1.20.0, NATIVE graphics, 960×540dp
+  xhdpi = 1920×1080) renders 19 screens with sample apps and generated
+  art (fake Coil Uri fetcher). `.github/workflows/screenshots.yml`
+  publishes PNGs to the `screenshots` **pre-release** (not latest, so the
+  updater ignores it). Download via REST: `gh api …/releases/tags/screenshots`
+  then `gh api -H "Accept: application/octet-stream" …/releases/assets/<id>`
+  (`gh release download` uses GraphQL, blocked here). build.yml now
+  ignores test/workflow/markdown-only pushes. `ui-test-manifest` is a
+  debugImplementation (adds an unused test activity to the debug APK).
 - **2026-11-02**: Rajat couldn't set a default launcher on the TV (no
   option). Added the Home button override accessibility service + Settings
   › Home button page, `<queries>` for HOME intents. Then (same day) a
